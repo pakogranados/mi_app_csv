@@ -1,0 +1,168 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Alertas - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-bell text-warning"></i> Alertas
+            </h1>
+            <p class="text-muted mb-0">
+                {{ total_alertas }} alerta(s) activa(s)
+            </p>
+        </div>
+        <div>
+            {% if alertas %}
+            <form action="{{ url_for('marcar_todas_leidas') }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="fas fa-check-double"></i> Marcar todas como leídas
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if alertas %}
+    <!-- Lista de Alertas -->
+    <div class="row">
+        <div class="col-12">
+            {% for alerta in alertas %}
+            <div class="card mb-3 border-start border-4 
+                {% if alerta.tipo == 'orden_compra' %}border-primary
+                {% elif alerta.tipo == 'factura' %}border-success
+                {% elif alerta.tipo == 'preparacion' %}border-warning
+                {% elif alerta.tipo == 'entrega' %}border-info
+                {% elif alerta.tipo == 'recepcion' %}border-secondary
+                {% elif alerta.tipo == 'pago' %}border-danger
+                {% else %}border-dark{% endif %}
+                {% if not alerta.leida %}bg-light{% endif %}"
+                id="alerta-{{ alerta.id }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-2">
+                                <!-- Icono por tipo -->
+                                {% if alerta.tipo == 'orden_compra' %}
+                                <span class="badge bg-primary me-2"><i class="fas fa-shopping-cart"></i> Orden de Compra</span>
+                                {% elif alerta.tipo == 'factura' %}
+                                <span class="badge bg-success me-2"><i class="fas fa-file-invoice"></i> Factura</span>
+                                {% elif alerta.tipo == 'preparacion' %}
+                                <span class="badge bg-warning text-dark me-2"><i class="fas fa-box"></i> Preparación</span>
+                                {% elif alerta.tipo == 'entrega' %}
+                                <span class="badge bg-info me-2"><i class="fas fa-truck"></i> Entrega</span>
+                                {% elif alerta.tipo == 'recepcion' %}
+                                <span class="badge bg-secondary me-2"><i class="fas fa-clipboard-check"></i> Recepción</span>
+                                {% elif alerta.tipo == 'pago' %}
+                                <span class="badge bg-danger me-2"><i class="fas fa-dollar-sign"></i> Pago</span>
+                                {% else %}
+                                <span class="badge bg-dark me-2"><i class="fas fa-bell"></i> {{ alerta.tipo }}</span>
+                                {% endif %}
+                                
+                                <!-- Rol destino -->
+                                <span class="badge bg-outline-secondary border text-muted">
+                                    <i class="fas fa-user"></i> {{ alerta.rol_destino|upper }}
+                                </span>
+                                
+                                {% if not alerta.leida %}
+                                <span class="badge bg-danger ms-2">Nueva</span>
+                                {% endif %}
+                            </div>
+                            
+                            <h5 class="card-title mb-1">{{ alerta.titulo }}</h5>
+                            
+                            {% if alerta.mensaje %}
+                            <p class="card-text text-muted mb-2">{{ alerta.mensaje }}</p>
+                            {% endif %}
+                            
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i>
+                                {% if alerta.minutos_transcurridos < 60 %}
+                                    Hace {{ alerta.minutos_transcurridos }} minutos
+                                {% elif alerta.minutos_transcurridos < 1440 %}
+                                    Hace {{ (alerta.minutos_transcurridos / 60)|int }} horas
+                                {% else %}
+                                    Hace {{ (alerta.minutos_transcurridos / 1440)|int }} días
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="ms-3">
+                            <!-- Botón de acción según tipo -->
+                            {% if alerta.referencia_tipo == 'orden_compra_b2b' %}
+                            <a href="{{ url_for('ver_orden_compra_b2b', orden_id=alerta.referencia_id) }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> Ver Orden
+                            </a>
+                            {% elif alerta.referencia_tipo == 'factura_b2b' %}
+                            <a href="{{ url_for('ver_factura_b2b', factura_id=alerta.referencia_id) }}" 
+                               class="btn btn-success btn-sm">
+                                <i class="fas fa-eye"></i> Ver Factura
+                            </a>
+                            {% endif %}
+                            
+                            {% if not alerta.leida %}
+                            <button type="button" class="btn btn-outline-secondary btn-sm ms-1" 
+                                    onclick="marcarLeida({{ alerta.id }})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Sin alertas -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No tienes alertas pendientes</h4>
+            <p class="text-muted">Cuando haya actividad que requiera tu atención, aparecerá aquí.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function marcarLeida(alertaId) {
+    fetch('/alertas/marcar_leida/' + alertaId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const card = document.getElementById('alerta-' + alertaId);
+            card.classList.remove('bg-light');
+            card.querySelector('.badge.bg-danger')?.remove();
+            card.querySelector('button[onclick*="marcarLeida"]')?.remove();
+            
+            // Actualizar contador en sidebar
+            actualizarContadorAlertas();
+        }
+    });
+}
+
+function actualizarContadorAlertas() {
+    fetch('/api/alertas/count')
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.getElementById('alertas-badge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

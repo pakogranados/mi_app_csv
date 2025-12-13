@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Subcuenta Contable</title>
+</head>
+
+<body>
+    <h2>Registrar Subcuenta Contable</h2>
+
+    <form method="POST">
+        <label for="nombre">Nombre de la subcuenta:</label>
+        <input type="text" name="nombre" required>
+        <br><br>
+
+        <label for="cuenta_id">Cuenta contable padre:</label>
+        <select name="cuenta_id" required>
+            {% for cuenta in cuentas %}
+            <option value="{{ cuenta.id }}">{{ cuenta.nombre }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <button type="submit">Registrar</button>
+    </form>
+
+    <a href="/panel_de_control">← Volver al Panel de Control</a>
+</body>
+
+</html>

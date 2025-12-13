@@ -1,0 +1,217 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Unidades de Medida - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 mb-1 fw-bold">📏 Unidades de Medida</h1>
+      <p class="text-muted small mb-0">Catálogo de unidades para inventario y producción</p>
+    </div>
+    <div>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaUnidad">
+        <i class="fas fa-plus me-2"></i>Nueva Unidad
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensajes Flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
+  <div class="row">
+    <!-- Formulario Rápido -->
+    <div class="col-12 col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold"><i class="fas fa-plus-circle me-2 text-primary"></i>Agregar Unidad</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('unidades_medida') }}">
+            <div class="mb-3">
+              <label for="nombre" class="form-label fw-medium">Nombre de la Unidad</label>
+              <input type="text" class="form-control" id="nombre" name="nombre" 
+                     placeholder="Ej: Kilogramo, Litro, Pieza" required>
+              <div class="form-text">Ingresa el nombre completo de la unidad</div>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>Guardar Unidad
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de Unidades -->
+    <div class="col-12 col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="fas fa-list me-2 text-success"></i>Unidades Registradas</h5>
+            <span class="badge bg-primary rounded-pill">{{ unidades|length }} unidades</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if unidades %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light">
+                <tr>
+                  <th class="px-4 py-3" style="width: 60px;">ID</th>
+                  <th class="px-4 py-3">Nombre</th>
+                  <th class="px-4 py-3 text-center" style="width: 120px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in unidades %}
+                <tr>
+                  <td class="px-4">
+                    <span class="badge bg-secondary">{{ u.id }}</span>
+                  </td>
+                  <td class="px-4">
+                    <span class="fw-medium">{{ u.nombre }}</span>
+                  </td>
+                  <td class="px-4 text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn btn-outline-primary" 
+                              onclick="editarUnidad({{ u.id }}, '{{ u.nombre }}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <form method="POST" action="{{ url_for('eliminar_unidad', id=u.id) }}" 
+                            style="display:inline;"
+                            onsubmit="return confirm('¿Eliminar esta unidad de medida?');">
+                        <button type="submit" class="btn btn-outline-danger" title="Eliminar">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-ruler fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay unidades registradas</h5>
+            <p class="text-muted mb-0">Agrega tu primera unidad de medida usando el formulario</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unidades Comunes Sugeridas -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-lightbulb me-2 text-warning"></i>Unidades Comunes</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Kilogramo')">
+            <i class="fas fa-weight me-1"></i>Kilogramo
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Gramo')">
+            <i class="fas fa-weight me-1"></i>Gramo
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Litro')">
+            <i class="fas fa-tint me-1"></i>Litro
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Mililitro')">
+            <i class="fas fa-tint me-1"></i>Mililitro
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Pieza')">
+            <i class="fas fa-cube me-1"></i>Pieza
+          </button>
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="agregarRapido('Unidad')">
+            <i class="fas fa-cube me-1"></i>Unidad
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Unidad -->
+<div class="modal fade" id="modalEditarUnidad" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title fw-bold"><i class="fas fa-edit me-2"></i>Editar Unidad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" id="formEditarUnidad">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="edit_nombre" class="form-label fw-medium">Nombre</label>
+            <input type="text" class="form-control" id="edit_nombre" name="nombre" required>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function agregarRapido(nombre) {
+  document.getElementById('nombre').value = nombre;
+  document.getElementById('nombre').focus();
+}
+
+function editarUnidad(id, nombre) {
+  document.getElementById('edit_nombre').value = nombre;
+  document.getElementById('formEditarUnidad').action = '/unidades_medida/' + id + '/editar';
+  const modal = new bootstrap.Modal(document.getElementById('modalEditarUnidad'));
+  modal.show();
+}
+</script>
+
+<style>
+  .btn-group-sm .btn {
+    padding: 0.4rem 0.6rem;
+  }
+  .btn-group form {
+    display: inline-flex;
+  }
+  .btn-group form .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+</style>
+{% endblock %}
+```
+
+Guarda este archivo en:
+```
+C:\Users\Pako\Documents\mi_app_csv\templates\unidades_medida.html

@@ -1,0 +1,119 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">⚙️ Configuración de Ubicaciones de Inventario</h4>
+      <small>Personaliza los niveles de ubicación según las necesidades de tu empresa</small>
+    </div>
+    
+    <div class="card-body">
+      
+      <!-- Información -->
+      <div class="alert alert-info">
+        <strong>ℹ️ Instrucciones:</strong>
+        <ul class="mb-0">
+          <li>Activa solo los niveles que necesites usar</li>
+          <li>Puedes personalizar el nombre de cada nivel (Ej: "Planta" → "Sucursal")</li>
+          <li>Los niveles desactivados no aparecerán al registrar productos</li>
+        </ul>
+      </div>
+
+      <!-- Formulario -->
+      <form method="post">
+        
+        <div class="row">
+          {% for n in niveles %}
+          <div class="col-md-6 mb-4">
+            <div class="card {% if n.activo %}border-success{% else %}border-secondary{% endif %}">
+              <div class="card-body">
+                
+                <!-- Checkbox de activación -->
+                <div class="form-check form-switch mb-3">
+                  <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    id="activo_{{ n.nivel }}" 
+                    name="activo_{{ n.nivel }}"
+                    {% if n.activo %}checked{% endif %}>
+                  <label class="form-check-label fw-bold" for="activo_{{ n.nivel }}">
+                    Nivel {{ n.nivel }}: 
+                    {% if n.activo %}
+                      <span class="text-success">✅ ACTIVO</span>
+                    {% else %}
+                      <span class="text-muted">❌ Desactivado</span>
+                    {% endif %}
+                  </label>
+                </div>
+
+                <!-- Nombre predeterminado -->
+                <div class="mb-2">
+                  <small class="text-muted">Nombre predeterminado:</small>
+                  <div><strong>{{ n.nombre_nivel }}</strong></div>
+                </div>
+
+                <!-- Nombre personalizado -->
+                <div class="mb-3">
+                  <label class="form-label">Renombrar a:</label>
+                  <input 
+                    type="text" 
+                    name="nombre_{{ n.nivel }}" 
+                    class="form-control"
+                    value="{{ n.nombre_personalizado or n.nombre_nivel }}"
+                    placeholder="{{ n.nombre_nivel }}">
+                  <small class="text-muted">
+                    Ejemplos: 
+                    {% if n.nivel == 1 %}
+                      Almacén, Sucursal, Bodega
+                    {% elif n.nivel == 2 %}
+                      Área, Departamento, Zona
+                    {% elif n.nivel == 3 %}
+                      Estante, Rack, Anaquel
+                    {% elif n.nivel == 4 %}
+                      Posición, Compartimento, Bin
+                    {% endif %}
+                  </small>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Ejemplo de código generado -->
+        <div class="card bg-light mb-4">
+          <div class="card-body">
+            <h6>📋 Ejemplo de código de ubicación:</h6>
+            <p class="mb-0">
+              Si activas los 4 niveles, un producto podría tener:
+              <code class="fs-6">OMEGA-BB-15-2</code>
+              <br>
+              <small class="text-muted">
+                ({{ niveles[0].nombre_personalizado or 'Planta' }}: OMEGA, 
+                {{ niveles[1].nombre_personalizado or 'Sección' }}: BB, 
+                {{ niveles[2].nombre_personalizado or 'Repisa' }}: 15, 
+                {{ niveles[3].nombre_personalizado or 'Línea' }}: 2)
+              </small>
+            </p>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-lg">
+            💾 Guardar Configuración
+          </button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg">
+            Cancelar
+          </a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

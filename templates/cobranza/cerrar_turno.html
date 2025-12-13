@@ -1,0 +1,558 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="card">
+    <div class="card-header bg-danger text-white">
+      <h4 class="mb-0">🔒 Cierre de Turno #{{ turno.id }}</h4>
+    </div>
+    <div class="card-body">
+      
+      <form method="post" id="frmCierre">
+        
+        <!-- Instrucción del fondo -->
+        <div class="alert alert-warning">
+          <h5>💰 IMPORTANTE:</h5>
+          <p class="mb-0">
+            <strong>Deja el fondo de ${{ "%.2f"|format(turno.fondo_inicial) }} en la caja</strong> 
+            para el siguiente turno.
+          </p>
+        </div>
+
+        {% if ya_validado %}
+        <div class="alert alert-danger">
+          <h5>⚠️ CONFIRMAR CIERRE</h5>
+          <p class="mb-0">Se detectaron diferencias. Si los datos son correctos, presiona "Cerrar Turno" para confirmar el cierre definitivo.</p>
+        </div>
+        {% endif %}
+
+        <hr>
+
+        <!-- SECCIÓN 1: CONTEO FINAL (SOLO ANOTAR) -->
+        <h5 class="mb-3">📦 1. Conteo Final de Productos</h5>
+        <p class="text-muted small">Anota la cantidad física que hay en este momento.</p>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-bordered">
+            <thead class="table-secondary">
+              <tr>
+                <th>Producto</th>
+                <th class="text-center" style="width: 150px;">Conteo Final</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in productos %}
+              <tr>
+                <td>{{ p.nombre }}</td>
+                <td>
+                  <input type="hidden" name="producto_id[]" value="{{ p.id }}">
+                  <input type="hidden" name="producto_nombre[]" value="{{ p.nombre }}">
+                  <input type="hidden" name="producto_precio[]" value="{{ p.precio }}">
+                  <input type="number" name="cantidad_final[]" 
+                         class="form-control form-control-sm text-center" 
+                         step="0.01" min="0" value="0" placeholder="0.00">
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <!-- SECCIÓN 2: MERMAS -->
+        <h5 class="mb-3">❌ 2. Mermas</h5>
+        
+        <button type="button" class="btn btn-outline-danger btn-sm mb-3" 
+                data-bs-toggle="modal" data-bs-target="#modalMerma">
+          ➕ Registrar Merma
+        </button>
+
+        <div class="table-responsive mb-4">
+          <table class="table table-sm" id="tablaMermas">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="text-center">Cantidad</th>
+                <th>Motivo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="listaMermas">
+              {% for m in mermas %}
+              <tr id="merma-{{ m.id }}">
+                <td>{{ m.producto_nombre }}</td>
+                <td class="text-center">{{ "%.2f"|format(m.cantidad) }}</td>
+                <td>{{ m.motivo }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-danger" 
+                          onclick="eliminarMerma({{ m.id }})">🗑️</button>
+                </td>
+              </tr>
+              {% else %}
+              <tr id="sinMermas">
+                <td colspan="4" class="text-center text-muted">Sin mermas registradas</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <!-- SECCIÓN 3: GASTOS Y COMPRAS -->
+        <h5 class="mb-3">🛒 3. Compras y Gastos del Turno</h5>
+        
+        <button type="button" class="btn btn-outline-primary btn-sm mb-3" 
+                data-bs-toggle="modal" data-bs-target="#modalGasto">
+          ➕ Agregar Gasto/Compra
+        </button>
+
+        <div class="table-responsive mb-4">
+          <table class="table table-sm" id="tablaGastos">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Concepto</th>
+                <th class="text-end">Monto</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="listaGastos">
+              {% for g in gastos %}
+              <tr id="gasto-{{ g.id }}">
+                <td>{{ g.fecha.strftime('%H:%M') }}</td>
+                <td>
+                  <span class="badge bg-{{ 'warning' if g.tipo == 'compra' else 'secondary' }}">
+                    {{ g.tipo.capitalize() }}
+                  </span>
+                </td>
+                <td>{{ g.concepto }}</td>
+                <td class="text-end gasto-monto">${{ "%.2f"|format(g.monto) }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-danger" 
+                          onclick="eliminarGasto({{ g.id }}, {{ g.monto }})">🗑️</button>
+                </td>
+              </tr>
+              {% else %}
+              <tr id="sinGastos">
+                <td colspan="5" class="text-center text-muted">Sin gastos registrados</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-secondary">
+              <tr>
+                <th colspan="3" class="text-end">Total:</th>
+                <th class="text-end" id="totalGastosDisplay">${{ "%.2f"|format(total_gastos) }}</th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <hr>
+
+        <!-- SECCIÓN 4: CONTEO DE DINERO -->
+        <h5 class="mb-3">💵 4. Conteo de Dinero en Caja</h5>
+        <p class="text-muted">Cuenta TODO el dinero que hay actualmente.</p>
+        
+        <div class="row g-3 mb-4">
+          <!-- Billetes -->
+          <div class="col-md-6">
+            <h6>Billetes en Pesos MXN</h6>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small">$20</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" name="billetes_20" class="form-control denominacion-cierre" 
+                         min="0" value="0" data-valor="20" id="bill20c">
+                  <span class="input-group-text"><span id="equiv20c">$0</span></span>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">$50</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" name="billetes_50" class="form-control denominacion-cierre" 
+                         min="0" value="0" data-valor="50" id="bill50c">
+                  <span class="input-group-text"><span id="equiv50c">$0</span></span>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">$100</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" name="billetes_100" class="form-control denominacion-cierre" 
+                         min="0" value="0" data-valor="100" id="bill100c">
+                  <span class="input-group-text"><span id="equiv100c">$0</span></span>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">$200</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" name="billetes_200" class="form-control denominacion-cierre" 
+                         min="0" value="0" data-valor="200" id="bill200c">
+                  <span class="input-group-text"><span id="equiv200c">$0</span></span>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">$500</label>
+                <div class="input-group input-group-sm">
+                  <input type="number" name="billetes_500" class="form-control denominacion-cierre" 
+                         min="0" value="0" data-valor="500" id="bill500c">
+                  <span class="input-group-text"><span id="equiv500c">$0</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dólares y Monedas -->
+          <div class="col-md-6">
+            <h6>Dólares USD</h6>
+            <div class="mb-3">
+              <label class="form-label small">Monto en Dólares</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" name="dolares" class="form-control" 
+                       step="0.01" min="0" value="0" id="dolaresInputC">
+                <span class="input-group-text">USD</span>
+              </div>
+              <small class="text-muted">TC: ${{ "%.2f"|format(turno.tipo_cambio) }}</small>
+              <div class="mt-1 small">
+                <strong>Equiv:</strong> <span id="dolaresEnPesosC">$0.00</span> MXN
+              </div>
+            </div>
+
+            <h6>Monedas</h6>
+            <div class="mb-3">
+              <label class="form-label small">Total en Monedas</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" name="monedas" class="form-control" 
+                       step="0.01" min="0" value="0" id="monedasInput">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total contado -->
+        <div class="card bg-light mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-6">
+                <h5>💰 Total en Caja:</h5>
+              </div>
+              <div class="col-6 text-end">
+                <h3 class="text-success" id="totalContado">$0.00</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Notas finales -->
+        <div class="mb-3">
+          <label class="form-label">Notas de cierre (opcional)</label>
+          <textarea name="notas_cierre" class="form-control" rows="2" 
+                    placeholder="Observaciones, incidencias..."></textarea>
+        </div>
+
+        <!-- Botones -->
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('caja') }}" class="btn btn-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-danger" 
+                  onclick="return confirm('{% if ya_validado %}¿Confirmas el cierre DEFINITIVO del turno?{% else %}¿Continuar con el cierre?{% endif %}')">
+            🔒 Cerrar Turno
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal Agregar Merma (AJAX) -->
+<div class="modal fade" id="modalMerma" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Registrar Merma</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formMerma">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Producto *</label>
+            <select name="producto_id" id="mermaProducto" class="form-select" required>
+              <option value="">Seleccionar...</option>
+              {% for p in productos %}
+              <option value="{{ p.id }}" data-nombre="{{ p.nombre }}">{{ p.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Cantidad *</label>
+            <input type="number" name="cantidad" id="mermaCantidad" class="form-control" 
+                   step="0.01" min="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Motivo *</label>
+            <input type="text" name="motivo" id="mermaMotivo" class="form-control" required
+                   placeholder="Ej: Producto caducado, roto...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" onclick="guardarMerma()">Registrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Agregar Gasto (AJAX) -->
+<div class="modal fade" id="modalGasto" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Gasto/Compra</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formGasto">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Tipo *</label>
+            <select name="tipo" id="gastoTipo" class="form-select" required>
+              <option value="gasto">Gasto</option>
+              <option value="compra">Compra</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Concepto *</label>
+            <input type="text" name="concepto" id="gastoConcepto" class="form-control" required
+                   placeholder="Ej: Compra de ingredientes...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Monto *</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="monto" id="gastoMonto" class="form-control" 
+                     step="0.01" min="0.01" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notas (opcional)</label>
+            <textarea name="notas" id="gastoNotas" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarGasto()">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tipoCambio = {{ "%.2f"|format(turno.tipo_cambio) }};
+  let totalGastos = {{ total_gastos }};
+
+  // =============================================
+  // CALCULAR TOTAL EN CAJA
+  // =============================================
+  function calcularTotalCierre() {
+    const bill20 = parseInt(document.getElementById('bill20c')?.value || '0') || 0;
+    const bill50 = parseInt(document.getElementById('bill50c')?.value || '0') || 0;
+    const bill100 = parseInt(document.getElementById('bill100c')?.value || '0') || 0;
+    const bill200 = parseInt(document.getElementById('bill200c')?.value || '0') || 0;
+    const bill500 = parseInt(document.getElementById('bill500c')?.value || '0') || 0;
+
+    const equiv20 = bill20 * 20;
+    const equiv50 = bill50 * 50;
+    const equiv100 = bill100 * 100;
+    const equiv200 = bill200 * 200;
+    const equiv500 = bill500 * 500;
+
+    document.getElementById('equiv20c').textContent = '$' + equiv20;
+    document.getElementById('equiv50c').textContent = '$' + equiv50;
+    document.getElementById('equiv100c').textContent = '$' + equiv100;
+    document.getElementById('equiv200c').textContent = '$' + equiv200;
+    document.getElementById('equiv500c').textContent = '$' + equiv500;
+
+    const totalBilletes = equiv20 + equiv50 + equiv100 + equiv200 + equiv500;
+
+    const dolares = parseFloat(document.getElementById('dolaresInputC')?.value || '0') || 0;
+    const dolaresEnPesos = dolares * tipoCambio;
+    document.getElementById('dolaresEnPesosC').textContent = '$' + dolaresEnPesos.toFixed(2);
+
+    const monedas = parseFloat(document.getElementById('monedasInput')?.value || '0') || 0;
+
+    const totalContado = totalBilletes + dolaresEnPesos + monedas;
+    document.getElementById('totalContado').textContent = '$' + totalContado.toFixed(2);
+  }
+
+  document.querySelectorAll('.denominacion-cierre, #dolaresInputC, #monedasInput').forEach(input => {
+    input.addEventListener('input', calcularTotalCierre);
+  });
+
+  calcularTotalCierre();
+
+  // =============================================
+  // MERMAS CON AJAX
+  // =============================================
+  function guardarMerma() {
+    const productoSelect = document.getElementById('mermaProducto');
+    const productoId = productoSelect.value;
+    const productoNombre = productoSelect.options[productoSelect.selectedIndex]?.dataset.nombre || '';
+    const cantidad = document.getElementById('mermaCantidad').value;
+    const motivo = document.getElementById('mermaMotivo').value;
+
+    if (!productoId || !cantidad || !motivo) {
+      alert('Completa todos los campos');
+      return;
+    }
+
+    fetch('{{ url_for("agregar_merma_ajax") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        producto_id: productoId,
+        producto_nombre: productoNombre,
+        cantidad: cantidad,
+        motivo: motivo
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Agregar fila a la tabla
+        const tbody = document.getElementById('listaMermas');
+        const sinMermas = document.getElementById('sinMermas');
+        if (sinMermas) sinMermas.remove();
+
+        const tr = document.createElement('tr');
+        tr.id = 'merma-' + data.id;
+        tr.innerHTML = `
+          <td>${productoNombre}</td>
+          <td class="text-center">${parseFloat(cantidad).toFixed(2)}</td>
+          <td>${motivo}</td>
+          <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarMerma(${data.id})">🗑️</button></td>
+        `;
+        tbody.appendChild(tr);
+
+        // Limpiar y cerrar modal
+        document.getElementById('formMerma').reset();
+        bootstrap.Modal.getInstance(document.getElementById('modalMerma')).hide();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(err => alert('Error de conexión'));
+  }
+
+  function eliminarMerma(id) {
+    if (!confirm('¿Eliminar esta merma?')) return;
+
+    fetch('{{ url_for("eliminar_merma_ajax") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('merma-' + id)?.remove();
+        // Si no quedan filas, mostrar mensaje
+        if (document.querySelectorAll('#listaMermas tr').length === 0) {
+          document.getElementById('listaMermas').innerHTML = 
+            '<tr id="sinMermas"><td colspan="4" class="text-center text-muted">Sin mermas registradas</td></tr>';
+        }
+      }
+    });
+  }
+
+  // =============================================
+  // GASTOS CON AJAX
+  // =============================================
+  function guardarGasto() {
+    const tipo = document.getElementById('gastoTipo').value;
+    const concepto = document.getElementById('gastoConcepto').value;
+    const monto = document.getElementById('gastoMonto').value;
+    const notas = document.getElementById('gastoNotas').value;
+
+    if (!tipo || !concepto || !monto) {
+      alert('Completa todos los campos obligatorios');
+      return;
+    }
+
+    fetch('{{ url_for("agregar_gasto_ajax") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: tipo,
+        concepto: concepto,
+        monto: monto,
+        notas: notas
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const tbody = document.getElementById('listaGastos');
+        const sinGastos = document.getElementById('sinGastos');
+        if (sinGastos) sinGastos.remove();
+
+        const badgeClass = tipo === 'compra' ? 'warning' : 'secondary';
+        const hora = new Date().toLocaleTimeString('es-MX', {hour: '2-digit', minute:'2-digit'});
+
+        const tr = document.createElement('tr');
+        tr.id = 'gasto-' + data.id;
+        tr.innerHTML = `
+          <td>${hora}</td>
+          <td><span class="badge bg-${badgeClass}">${tipo.charAt(0).toUpperCase() + tipo.slice(1)}</span></td>
+          <td>${concepto}</td>
+          <td class="text-end gasto-monto">$${parseFloat(monto).toFixed(2)}</td>
+          <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarGasto(${data.id}, ${monto})">🗑️</button></td>
+        `;
+        tbody.appendChild(tr);
+
+        // Actualizar total
+        totalGastos += parseFloat(monto);
+        document.getElementById('totalGastosDisplay').textContent = '$' + totalGastos.toFixed(2);
+
+        // Limpiar y cerrar modal
+        document.getElementById('formGasto').reset();
+        bootstrap.Modal.getInstance(document.getElementById('modalGasto')).hide();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(err => alert('Error de conexión'));
+  }
+
+  function eliminarGasto(id, monto) {
+    if (!confirm('¿Eliminar este gasto?')) return;
+
+    fetch('{{ url_for("eliminar_gasto_ajax") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('gasto-' + id)?.remove();
+        totalGastos -= monto;
+        document.getElementById('totalGastosDisplay').textContent = '$' + totalGastos.toFixed(2);
+
+        if (document.querySelectorAll('#listaGastos tr').length === 0) {
+          document.getElementById('listaGastos').innerHTML = 
+            '<tr id="sinGastos"><td colspan="5" class="text-center text-muted">Sin gastos registrados</td></tr>';
+        }
+      }
+    });
+  }
+</script>
+
+{% endblock %}

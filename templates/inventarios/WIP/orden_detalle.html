@@ -1,0 +1,172 @@
+{% extends "sidebar.html" %}
+{% block title %}Orden #{{ orden.id }} - {{ orden.producto }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">Orden de Producción #{{ orden.id }}</h3>
+    <a href="{{ url_for('wip.ordenes_list') }}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Volver
+    </a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Información general -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información General</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">
+          <strong>Producto:</strong><br>
+          {{ orden.producto }}
+        </div>
+        <div class="col-md-2">
+          <strong>Cantidad:</strong><br>
+          {{ '%.2f'|format(orden.cantidad|float) }}
+        </div>
+        <div class="col-md-2">
+          <strong>Fecha:</strong><br>
+          {{ orden.fecha.strftime('%d/%m/%Y') if orden.fecha else '' }}
+        </div>
+        <div class="col-md-2">
+          <strong>Estado:</strong><br>
+          {% if orden.estado == 'abierta' %}
+            <span class="badge bg-info">Abierta</span>
+          {% elif orden.estado == 'cerrada' %}
+            <span class="badge bg-success">Cerrada</span>
+          {% endif %}
+        </div>
+        <div class="col-md-3">
+          <strong>Referencia:</strong><br>
+          {{ orden.referencia or '—' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proceso asociado -->
+  {% if proceso %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0"><i class="fas fa-project-diagram"></i> Proceso: {{ proceso.nombre }}</h5>
+    </div>
+    <div class="card-body">
+      {% if proceso.descripcion %}
+        <p class="mb-3">{{ proceso.descripcion }}</p>
+      {% endif %}
+      
+      <h6 class="mb-3">Pasos del proceso ({{ pasos|length }})</h6>
+      {% if pasos %}
+        <div class="list-group">
+          {% for paso in pasos %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ paso.orden }}.</strong> {{ paso.nombre }}
+                {% if paso.area_nombre %}
+                  <span class="badge bg-secondary ms-2">{{ paso.area_nombre }}</span>
+                {% endif %}
+              </div>
+              <div>
+                {% if paso.minutos_estimados %}
+                  <small class="text-muted">⏱️ {{ paso.minutos_estimados }} min</small>
+                {% endif %}
+                {% if paso.requiere_validez %}
+                  <span class="badge bg-warning text-dark ms-2">Requiere validación</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Este proceso no tiene pasos configurados.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>Advertencia:</strong> Este producto no tiene un proceso de producción configurado.
+    <a href="{{ url_for('wip.procesos_list') }}">Configúralo aquí</a>.
+  </div>
+  {% endif %}
+
+  <!-- Movimientos de inventario -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-secondary text-white">
+      <h5 class="mb-0"><i class="fas fa-exchange-alt"></i> Movimientos de Inventario</h5>
+    </div>
+    <div class="card-body p-0">
+      {% if movimientos %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Tipo</th>
+                <th class="text-end">Unidades</th>
+                <th class="text-end">P. Unit.</th>
+                <th>Referencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mov in movimientos %}
+              <tr>
+                <td>{{ mov.fecha.strftime('%d/%m/%Y') if mov.fecha else '' }}</td>
+                <td>{{ mov.producto_nombre }}</td>
+                <td>
+                  <span class="badge bg-{{ 'success' if mov.tipo_movimiento == 'ENTRADA' else 'danger' }}">
+                    {{ mov.tipo_movimiento }}
+                  </span>
+                </td>
+                <td class="text-end">{{ '%.2f'|format(mov.unidades|float) }}</td>
+                <td class="text-end">${{ '%.2f'|format(mov.precio_unitario|float) }}</td>
+                <td>{{ mov.referencia }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-3 text-center text-muted">
+          No hay movimientos de inventario registrados para esta orden.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% if orden.estado == 'abierta' %}
+    <form method="POST" action="{{ url_for('wip.orden_iniciar', orden_id=orden.id) }}" style="display: inline;">
+        <button type="submit" class="btn btn-warning" 
+                onclick="return confirm('¿Iniciar producción? Se consumirán las materias primas.')">
+            <i class="fas fa-play"></i> Iniciar Producción
+        </button>
+    </form>
+  {% endif %}
+  <!-- Acciones -->
+  {% if orden.estado == 'abierta' %}
+
+  <div class="mt-4">
+    <form method="POST" action="{{ url_for('wip.orden_cerrar', orden_id=orden.id) }}"
+          onsubmit="return confirm('¿Estás seguro de cerrar esta orden? Esta acción registrará el producto terminado en inventario.');">
+      <button type="submit" class="btn btn-success btn-lg">
+        <i class="fas fa-check-circle"></i> Cerrar Orden de Producción
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

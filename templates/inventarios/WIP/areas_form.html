@@ -1,0 +1,25 @@
+{% extends "sidebar.html" %}
+{% block title %}Gestión de Área{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <h3 class="mb-4">{{ area and 'Editar Área' or 'Nueva Área' }}</h3>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Nombre del Área</label>
+      <input type="text" class="form-control" name="nombre" value="{{ area.nombre if area else '' }}" required>
+    </div>
+
+    {% if area %}
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" name="activo" id="activo" {% if area.activo %}checked{% endif %}>
+      <label class="form-check-label" for="activo">Área activa</label>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-success">Guardar</button>
+    <a href="{{ url_for('listar_areas') }}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

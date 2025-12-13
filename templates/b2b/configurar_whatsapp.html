@@ -1,0 +1,143 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Configurar WhatsApp B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fab fa-whatsapp text-success"></i> Configurar WhatsApp
+            </h1>
+            <p class="text-muted mb-0">Notificaciones automáticas por WhatsApp</p>
+        </div>
+        <a href="{{ url_for('test_whatsapp') }}" class="btn btn-outline-success">
+            <i class="fas fa-paper-plane"></i> Probar Envío
+        </a>
+    </div>
+
+    <!-- Estado de la integración -->
+    <div class="alert {% if whatsapp_enabled %}alert-success{% else %}alert-warning{% endif %} mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fab fa-whatsapp fa-2x me-3"></i>
+            <div>
+                {% if whatsapp_enabled %}
+                <strong>WhatsApp Activo</strong>
+                <p class="mb-0">Las notificaciones por WhatsApp están configuradas correctamente.</p>
+                {% else %}
+                <strong>WhatsApp No Configurado</strong>
+                <p class="mb-0">
+                    Configura las variables de entorno TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN para activar las notificaciones.
+                    <a href="https://www.twilio.com/console" target="_blank">Ir a Twilio Console →</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Información -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-info-circle"></i> ¿Cuándo se envían notificaciones?</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-primary">Como Cliente:</h6>
+                    <ul class="small">
+                        <li><strong>Supervisor:</strong> Nueva OC generada, Factura recibida</li>
+                        <li><strong>Almacén:</strong> Mercancía en camino</li>
+                        <li><strong>CxP:</strong> Nueva cuenta por pagar</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-success">Como Proveedor:</h6>
+                    <ul class="small">
+                        <li><strong>Ventas:</strong> Nuevo pedido recibido</li>
+                        <li><strong>CxC:</strong> Pedido listo para facturar, Pago recibido</li>
+                        <li><strong>Almacén:</strong> Factura lista para preparar</li>
+                        <li><strong>Reparto:</strong> Mercancía lista para entrega</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuración por usuario -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-users"></i> Usuarios con Roles B2B</h5>
+        </div>
+        <div class="card-body">
+            {% if usuarios %}
+            <form method="POST">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Roles</th>
+                                <th>Teléfono WhatsApp</th>
+                                <th class="text-center">Notificar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in usuarios %}
+                            <tr>
+                                <td>
+                                    <input type="hidden" name="usuario_id[]" value="{{ u.id }}">
+                                    <strong>{{ u.nombre }}</strong>
+                                </td>
+                                <td>
+                                    {% if u.es_supervisor %}<span class="badge bg-primary me-1">Supervisor</span>{% endif %}
+                                    {% if u.es_ventas %}<span class="badge bg-info me-1">Ventas</span>{% endif %}
+                                    {% if u.es_cxc %}<span class="badge bg-success me-1">CxC</span>{% endif %}
+                                    {% if u.es_cxp %}<span class="badge bg-danger me-1">CxP</span>{% endif %}
+                                    {% if u.es_almacen %}<span class="badge bg-warning text-dark me-1">Almacén</span>{% endif %}
+                                    {% if u.es_reparto %}<span class="badge bg-secondary me-1">Reparto</span>{% endif %}
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm" style="width: 200px;">
+                                        <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                        <input type="tel" name="telefono_{{ u.id }}" class="form-control" 
+                                               value="{{ u.telefono_whatsapp or '' }}"
+                                               placeholder="10 dígitos"
+                                               pattern="[0-9]{10,15}">
+                                    </div>
+                                    <small class="text-muted">Ej: 6141234567</small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-flex justify-content-center">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="notificar_{{ u.id }}" value="1"
+                                               {% if u.notificar_whatsapp %}checked{% endif %}
+                                               style="width: 3em; height: 1.5em;">
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-success" {% if not whatsapp_enabled %}disabled{% endif %}>
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users-slash fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Sin usuarios con roles B2B</h4>
+                <p class="text-muted">Primero asigna roles B2B a los usuarios.</p>
+                <a href="{{ url_for('configurar_roles_b2b') }}" class="btn btn-primary">
+                    <i class="fas fa-users-cog"></i> Configurar Roles
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Datos desde CSV</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 60%;
+            margin: auto;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+    <h2 style="text-align:center">Datos cargados desde CSV</h2>
+    <table>
+        <tr>
+            {% for encabezado in encabezados %}
+            <th>{{ encabezado }}</th>
+            {% endfor %}
+        </tr>
+        {% for fila in datos %}
+        <tr>
+            {% for valor in fila %}
+            <td>{{ valor }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>

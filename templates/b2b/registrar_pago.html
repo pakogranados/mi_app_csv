@@ -1,0 +1,130 @@
+{% extends "sidebar.html" %}
+
+{% block title %}{% if tipo == 'pago' %}Registrar Pago{% else %}Registrar Cobro{% endif %} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                {% if tipo == 'pago' %}
+                <i class="fas fa-money-bill-wave text-danger"></i> Registrar Pago
+                {% else %}
+                <i class="fas fa-hand-holding-usd text-success"></i> Registrar Cobro
+                {% endif %}
+            </h1>
+            <p class="text-muted mb-0">
+                {% if tipo == 'pago' %}
+                Pagar a: {{ cuenta.proveedor_nombre }}
+                {% else %}
+                Cobrar de: {{ cuenta.cliente_nombre }}
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% if tipo == 'pago' %}{{ url_for('cuentas_por_pagar_b2b') }}{% else %}{{ url_for('cuentas_por_cobrar_b2b') }}{% endif %}" 
+           class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header {% if tipo == 'pago' %}bg-danger{% else %}bg-success{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-invoice-dollar"></i> Información de la Cuenta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Info de la cuenta -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">{% if tipo == 'pago' %}Proveedor{% else %}Cliente{% endif %}:</td>
+                                    <td class="fw-bold">{% if tipo == 'pago' %}{{ cuenta.proveedor_nombre }}{% else %}{{ cuenta.cliente_nombre }}{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Monto Original:</td>
+                                    <td>${{ '{:,.2f}'.format(cuenta.monto_original or 0) }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Ya Pagado:</td>
+                                    <td class="text-success">${{ '{:,.2f}'.format(cuenta.monto_pagado or 0) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Saldo Pendiente</h6>
+                                    <h2 class="{% if tipo == 'pago' %}text-danger{% else %}text-success{% endif %} mb-0">
+                                        ${{ '{:,.2f}'.format(cuenta.saldo or 0) }}
+                                    </h2>
+                                    {% if cuenta.fecha_vencimiento %}
+                                    <small class="text-muted">
+                                        Vence: {{ cuenta.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Formulario de pago -->
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Monto a {% if tipo == 'pago' %}Pagar{% else %}Cobrar{% endif %} *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" name="monto" class="form-control form-control-lg" 
+                                               step="0.01" min="0.01" max="{{ cuenta.saldo }}"
+                                               value="{{ cuenta.saldo }}" required>
+                                    </div>
+                                    <small class="text-muted">Máximo: ${{ '{:,.2f}'.format(cuenta.saldo or 0) }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Método de Pago *</label>
+                                    <select name="metodo_pago" class="form-select form-select-lg" required>
+                                        <option value="transferencia">Transferencia Bancaria</option>
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="cheque">Cheque</option>
+                                        <option value="tarjeta">Tarjeta</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Referencia / Número de Transacción</label>
+                            <input type="text" name="referencia" class="form-control" 
+                                   placeholder="Ej: TRF-123456, Cheque #789">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Notas</label>
+                            <textarea name="notas" class="form-control" rows="2" 
+                                      placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg {% if tipo == 'pago' %}btn-danger{% else %}btn-success{% endif %}"
+                                    onclick="return confirm('¿Confirmar {% if tipo == 'pago' %}pago{% else %}cobro{% endif %}?')">
+                                <i class="fas fa-check-circle"></i> 
+                                Confirmar {% if tipo == 'pago' %}Pago{% else %}Cobro{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Registrar Nueva Compra</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="/nueva_compra">
+    <!-- Proveedor -->
+    <div class="mb-3">
+      <label class="form-label">Proveedor:</label>
+      <input type="text" class="form-control" name="proveedor" list="lista_proveedores" required />
+      <datalist id="lista_proveedores">
+        {% for p in proveedores %}
+          <option value="{{ p.nombre }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <!-- Fecha -->
+    <div class="mb-3">
+      <label class="form-label">Fecha de compra:</label>
+      <input type="date" class="form-control" name="fecha" required />
+    </div>
+
+    <!-- Factura -->
+    <div class="mb-3">
+      <label class="form-label">Número de factura o ticket:</label>
+      <input type="text" class="form-control" name="numero_factura" required />
+    </div>
+
+    <!-- Método de pago -->
+    <div class="mb-3">
+      <label class="form-label">Método de Pago:</label>
+      <select name="metodo_pago" class="form-select" required>
+        <option value="efectivo">Efectivo</option>
+        <option value="banco">Transferencia / Banco</option>
+        <option value="cheque">Cheque</option>
+        <option value="deposito">Depósito</option>
+        <option value="credito">Crédito</option>
+      </select>
+    </div>
+
+    <!-- Datalist de mercancías (de mercancia.id/nombre) -->
+    <datalist id="d_mercancia">
+      {% for p in productos %}
+        <option data-id="{{ p.id }}" value="{{ p.nombre }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <!-- Tabla -->
+    <table id="tabla-productos" class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Producto</th>
+          <th class="text-end">Unidades</th>
+          <th class="text-end">Precio unitario</th>
+          <th class="text-end">Importe</th>
+          <th style="width:1%"></th>
+        </tr>
+      </thead>
+      <tbody id="items-body"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="text-end"><strong>Gran Total:</strong></td>
+          <td class="text-end"><strong id="granTotal">$0.00</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="mb-3 d-flex gap-2">
+      <button type="button" id="btn-add" class="btn btn-secondary">Agregar otro producto</button>
+      <button type="submit" id="btn-registrar" class="btn btn-primary">Registrar Compra</button>
+      <a href="/listado_compras" class="btn btn-outline-secondary">Listado de Compras</a>
+      <a href="/mercancia" class="btn btn-outline-secondary">Registra nueva Mercancia</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const body = document.getElementById('items-body');
+  const granTotalEl = document.getElementById('granTotal');
+  const btnRegistrar = document.getElementById('btn-registrar');
+  const btnAdd = document.getElementById('btn-add');
+  const form = document.querySelector('form');
+
+  function num(v){ return parseFloat(String(v).replace(',', '.')) || 0; }
+
+  function setRowState(tr, valid) {
+    const qty = tr.querySelector('.unidades');
+    const pu  = tr.querySelector('.precio_unitario');
+    if (!valid) {
+      qty.value = '';
+      pu.value  = '';
+      tr.querySelector('.precio_total').value = '';
+    }
+    qty.disabled = !valid;
+    pu.disabled  = !valid;
+  }
+
+  function rowInvalid(tr) {
+    const hasId = !!tr.querySelector('.mercancia_id').value.trim();
+    const msg   = tr.querySelector('.msg-validacion').textContent.trim();
+    return !hasId || msg !== '';
+  }
+
+  function validarFormulario() {
+    let valido = true;
+
+    const proveedor = document.querySelector('input[name="proveedor"]').value.trim();
+    const fecha = document.querySelector('input[name="fecha"]').value.trim();
+    const factura = document.querySelector('input[name="numero_factura"]').value.trim();
+    if (!proveedor || !fecha || !factura) valido = false;
+
+    body.querySelectorAll('.fila-producto').forEach(tr => {
+      if (rowInvalid(tr)) {
+        setRowState(tr, false);
+        valido = false;
+      }
+    });
+
+    btnRegistrar.disabled = !valido;
+    btnAdd.disabled = !valido;
+  }
+
+  function calcRow(tr) {
+    const q = num(tr.querySelector('.unidades').value);
+    const p = num(tr.querySelector('.precio_unitario').value);
+    const total = Math.round(q * p * 100) / 100;
+    tr.querySelector('.precio_total').value = total.toFixed(2);
+    calcTotal();
+  }
+
+  function calcTotal() {
+    let total = 0;
+    body.querySelectorAll('.precio_total').forEach(input => { total += parseFloat(input.value) || 0; });
+    granTotalEl.textContent = `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function bindRow(tr) {
+    const qty = tr.querySelector('.unidades');
+    const pu  = tr.querySelector('.precio_unitario');
+    const del = tr.querySelector('.btn-del');
+    const prodInput = tr.querySelector('.prod');
+    const msg = tr.querySelector('.msg-validacion');
+    const hiddenId = tr.querySelector('.mercancia_id');
+
+    // inicio: bloqueado
+    setRowState(tr, false);
+    msg.textContent = 'Selecciona un producto del catálogo.';
+
+    ['input','change','keyup'].forEach(ev => {
+      qty.addEventListener(ev, () => { calcRow(tr); validarFormulario(); });
+      pu.addEventListener(ev,  () => { calcRow(tr); validarFormulario(); });
+    });
+
+    del.addEventListener('click', () => {
+      tr.remove();
+      calcTotal();
+      if (!body.children.length) addRow();
+      validarFormulario();
+    });
+
+    // al teclear, invalida hasta escoger opción válida
+    prodInput.addEventListener('input', () => {
+      hiddenId.value = '';
+      msg.textContent = 'Selecciona un producto del catálogo.';
+      setRowState(tr, false);
+      validarFormulario();
+    });
+
+    // al cambiar, mapea nombre->id desde datalist
+    prodInput.addEventListener('change', () => {
+      const val = prodInput.value;
+      const opt = Array.from(document.querySelectorAll('#d_mercancia option')).find(o => o.value === val);
+      hiddenId.value = opt ? opt.dataset.id : '';
+      if (hiddenId.value) {
+        msg.textContent = '';
+        setRowState(tr, true);
+      } else {
+        msg.textContent = 'Producto inexistente. Usa una opción del catálogo.';
+        setRowState(tr, false);
+      }
+      validarFormulario();
+    });
+
+    // Tab en PU agrega fila solo si todo válido
+    pu.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab' && !e.shiftKey) {
+        const isLast = tr === body.lastElementChild;
+        if (isLast) {
+          validarFormulario();
+          if (!btnRegistrar.disabled) {
+            e.preventDefault();
+            addRow();
+          }
+        }
+      }
+    });
+  }
+
+  function addRow() {
+    const tr = document.createElement('tr');
+    tr.className = 'fila-producto';
+    tr.innerHTML = `
+      <td>
+        <input type="text" name="mercancia_nombre[]" list="d_mercancia" class="form-control prod" required>
+        <input type="hidden" name="mercancia_id[]" class="mercancia_id">
+        <small class="text-danger msg-validacion"></small>
+      </td>
+      <td>
+        <input type="number" name="unidades[]" class="form-control unidades text-end" step="any" inputmode="decimal" min="0" required>
+      </td>
+      <td>
+        <input type="number" name="precio_unitario[]" class="form-control precio_unitario text-end" step="any" inputmode="decimal" min="0" required>
+      </td>
+      <td>
+        <input type="number" name="precio_total[]" class="form-control precio_total text-end" readonly>
+      </td>
+      <td>
+        <button type="button" class="btn btn-sm btn-danger btn-del">×</button>
+      </td>
+    `;
+    body.appendChild(tr);
+    bindRow(tr);
+    tr.querySelector('.prod').focus();
+    return tr;
+  }
+
+  // bloquea submit si hay filas inválidas
+  form.addEventListener('submit', (e) => {
+    validarFormulario();
+    if (btnRegistrar.disabled) {
+      e.preventDefault();
+      const firstBad = Array.from(body.querySelectorAll('.fila-producto')).find(rowInvalid);
+      if (firstBad) firstBad.querySelector('.prod').focus();
+    }
+  });
+
+  // init
+  document.addEventListener('DOMContentLoaded', () => {
+    addRow();
+    validarFormulario();
+  });
+
+  btnAdd.addEventListener('click', () => {
+    validarFormulario();
+    if (!btnRegistrar.disabled) {
+      const r = addRow();
+      r.querySelector('.prod').focus();
+    }
+  });
+</script>
+{% endblock %}

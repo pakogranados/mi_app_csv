@@ -1,0 +1,50 @@
+{% extends "sidebar.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">Órdenes de Producción</h2>
+
+  <div class="mb-3 text-end">
+    <a href="{{ url_for('new_production') }}" class="btn btn-primary">➕ Nueva Producción</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Producto Terminado</th>
+          <th class="text-end">Cantidad Planificada</th>
+          <th>Estatus</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in productions %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.product }}</td>
+          <td class="text-end">{{ p.planned_quantity }}</td>
+          <td>{{ p.status }}</td>
+          <td>{{ p.date }}</td>
+          <td>
+            <a href="{{ url_for('production_wip', production_id=p.id) }}" class="btn btn-sm btn-outline-info">Ver</a>
+            <form method="POST"
+                action="{{ url_for('delete_production', production_id=p.id) }}"
+                onsubmit="return confirm('¿Seguro que deseas borrar la orden #{{ p.id }}?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Borrar</button>
+            </form>
+
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">No hay órdenes de producción registradas.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

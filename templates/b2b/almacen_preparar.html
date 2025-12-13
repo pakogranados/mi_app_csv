@@ -1,0 +1,152 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Preparar {{ factura.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-box text-warning"></i> Preparar Mercancía
+            </h1>
+            <p class="text-muted mb-0">{{ factura.folio }} - {{ factura.cliente_nombre }}</p>
+        </div>
+        <a href="{{ url_for('almacen_preparacion_b2b') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Checklist -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-list-check"></i> Artículos a Preparar</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;"></th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in detalle %}
+                                <tr class="{% if d.verificado %}table-success{% endif %}">
+                                    <td class="text-center">
+                                        {% if d.verificado %}
+                                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                                        {% else %}
+                                        <i class="far fa-circle text-secondary fa-2x"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ d.descripcion }}</strong>
+                                        {% if d.verificado %}
+                                        <br><small class="text-success">
+                                            <i class="fas fa-user"></i> {{ d.verificado_por }} - 
+                                            {{ d.fecha_verificacion.strftime('%H:%M') if d.fecha_verificacion else '' }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">{{ d.cantidad_facturada }}</span>
+                                    </td>
+                                    <td>
+                                        {% if not d.verificado %}
+                                        <form method="POST" class="d-inline">
+                                            <input type="hidden" name="accion" value="verificar_item">
+                                            <input type="hidden" name="checklist_id" value="{{ d.checklist_id }}">
+                                            <input type="hidden" name="cantidad" value="{{ d.cantidad_facturada }}">
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-check"></i> Listo
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="badge bg-success">Preparado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Info factura -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td class="text-muted">Factura:</td>
+                            <td class="fw-bold">{{ factura.folio }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Cliente:</td>
+                            <td>{{ factura.cliente_nombre }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Total:</td>
+                            <td class="fw-bold">${{ '{:,.2f}'.format(factura.total or 0) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Progreso -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progreso</h5>
+                </div>
+                <div class="card-body">
+                    {% set listos = detalle|selectattr('verificado')|list|length %}
+                    {% set total = detalle|length %}
+                    {% set pct = (listos / total * 100) if total > 0 else 0 %}
+                    
+                    <div class="text-center mb-3">
+                        <h2 class="mb-0">{{ listos }} / {{ total }}</h2>
+                        <small class="text-muted">artículos preparados</small>
+                    </div>
+                    
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success" style="width: {{ pct }}%">
+                            {{ pct|int }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completar -->
+            {% if listos == total and total > 0 %}
+            <div class="card border-success">
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="accion" value="completar">
+                        <button type="submit" class="btn btn-success btn-lg w-100" 
+                                onclick="return confirm('¿Marcar como lista para reparto?')">
+                            <i class="fas fa-truck"></i> Enviar a Reparto
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                Complete todos los artículos antes de enviar a reparto.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

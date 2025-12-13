@@ -1,0 +1,58 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h2 class="mb-4">Editar receta #{{ receta.id }}</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} mb-3">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card">
+    <div class="card-body">
+      <form method="POST" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Producto Terminado</label>
+          <select name="product_id" class="form-select" required>
+            {% for p in productos %}
+              <option value="{{ p.id }}" {% if p.id == receta.product_id %}selected{% endif %}>
+                {{ p.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Materia Prima</label>
+          <select name="material_id" class="form-select" required>
+            {% for m in materiales %}
+              <option value="{{ m.id }}" {% if m.id == receta.material_id %}selected{% endif %}>
+                {{ m.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">Cantidad</label>
+          <input type="number" name="quantity" step="0.001" min="0" class="form-control"
+                 value="{{ receta.quantity }}" required>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">Unidad</label>
+          <input type="text" name="unit" class="form-control" value="{{ receta.unit }}" required>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <a href="{{ url_for('recetas') }}" class="btn btn-outline-secondary">← Volver</a>
+          <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

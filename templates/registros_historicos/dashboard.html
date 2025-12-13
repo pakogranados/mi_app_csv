@@ -1,0 +1,171 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Registros Históricos - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-calendar-alt text-primary"></i>
+                        Registros Históricos
+                    </h2>
+                    <p class="text-muted mb-0">Ventas, mermas y consumos de fechas anteriores</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('registros_historicos_dashboard', mes=mes_anterior, anio=anio_anterior) }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </a>
+                    <span class="btn btn-primary disabled">
+                        <strong>{{ nombre_mes }} {{ anio }}</strong>
+                    </span>
+                    <a href="{{ url_for('registros_historicos_dashboard', mes=mes_siguiente, anio=anio_siguiente) }}" 
+                       class="btn btn-outline-secondary">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen del mes -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Total Ventas</h6>
+                            <h3 class="mb-0">${{ "{:,.2f}".format(totales.ventas) }}</h3>
+                            <small>{{ totales.num_ventas }} registros</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cash-register fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Total Mermas</h6>
+                            <h3 class="mb-0">${{ "{:,.2f}".format(totales.mermas) }}</h3>
+                            <small>{{ totales.num_mermas }} registros</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-trash-alt fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="opacity-75">Consumos Internos</h6>
+                            <h3 class="mb-0">${{ "{:,.2f}".format(totales.consumos) }}</h3>
+                            <small>{{ totales.num_consumos }} registros</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-utensils fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Utilidad Neta</h6>
+                            <h3 class="mb-0">${{ "{:,.2f}".format(totales.ventas - totales.mermas - totales.consumos) }}</h3>
+                            <small>Ventas - Pérdidas</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario del mes -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar"></i> Días del mes
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-3">
+                {% for dia in dias_mes %}
+                <div class="col">
+                    <div class="card h-100 {% if dia.es_futuro %}bg-light{% elif dia.es_hoy %}border-primary border-2{% elif dia.cerrado %}bg-secondary bg-opacity-10{% endif %}"
+                         style="{% if dia.es_futuro %}opacity: 0.5; cursor: not-allowed;{% endif %}">
+                        <div class="card-body p-2 text-center">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge {% if dia.es_hoy %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ dia.dia_semana }}
+                                </span>
+                                <strong class="{% if dia.es_hoy %}text-primary{% endif %}">{{ dia.dia }}</strong>
+                                {% if dia.cerrado %}
+                                <i class="fas fa-lock text-muted" title="Día cerrado"></i>
+                                {% else %}
+                                <span style="width: 14px;"></span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if not dia.es_futuro %}
+                            <div class="small mb-2">
+                                {% if dia.ventas.num_ventas > 0 %}
+                                <div class="text-success">
+                                    <i class="fas fa-dollar-sign"></i> ${{ "{:,.0f}".format(dia.ventas.total_ventas or 0) }}
+                                </div>
+                                {% endif %}
+                                {% if dia.mermas.num_mermas > 0 %}
+                                <div class="text-danger">
+                                    <i class="fas fa-minus-circle"></i> {{ dia.mermas.num_mermas }}
+                                </div>
+                                {% endif %}
+                                {% if dia.consumos.num_consumos > 0 %}
+                                <div class="text-warning">
+                                    <i class="fas fa-utensils"></i> {{ dia.consumos.num_consumos }}
+                                </div>
+                                {% endif %}
+                                {% if dia.ventas.num_ventas == 0 and dia.mermas.num_mermas == 0 and dia.consumos.num_consumos == 0 %}
+                                <div class="text-muted">
+                                    <small>Sin registros</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <a href="{{ url_for('registro_dia', fecha=dia.fecha.strftime('%Y-%m-%d')) }}" 
+                               class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-edit"></i> Ver
+                            </a>
+                            {% else %}
+                            <div class="text-muted small py-3">
+                                <i class="fas fa-clock"></i><br>
+                                Fecha futura
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

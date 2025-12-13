@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mi ERP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        img {
+            width: 200px;
+        }
+
+        .boton {
+            display: block;
+            margin: 15px auto;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            width: 200px;
+            font-size: 16px;
+        }
+
+        .boton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo de la empresa" width="200">
+
+    {% if session['rol'] == 'admin' %}
+    <a href="/panel_de_control" class="boton">Panel de Control (Admin)</a>
+    {% endif %}
+
+    <a href="/registro" class="boton">Registro</a>
+    <a href="/login" class="boton">Login</a>
+    <a href="/panel" class="boton">Panel de Control</a>
+    <a href="/inventario" class="boton">Inventario</a>
+    <a href="/compras" class="boton">Historial de Compras</a>
+    <a href="/nueva_compra" class="boton">Registrar nueva compra</a>
+</body>
+
+</html>

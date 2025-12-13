@@ -1,0 +1,197 @@
+{% extends "sidebar.html" %}{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <h5 class="mb-0">Procesos por área (múltiples áreas por proceso)</h5>
+  <span class="badge text-bg-secondary">{{ procesos|length }}</span>
+  <div class="ms-auto d-flex gap-2">
+    <input id="f-text" class="form-control form-control-sm" placeholder="Buscar proceso, área o insumo...">
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalProceso">Nuevo proceso</button>
+  </div>
+</div>
+
+{% if procesos|length == 0 %}
+  <div class="alert alert-warning">No hay procesos.</div>
+{% endif %}
+{% if mercancias|length == 0 %}
+  <div class="alert alert-info">No hay materias primas configuradas.</div>
+{% endif %}
+
+
+<div id="proc-list" class="accordion">
+  {% for p in procesos %}
+  <span class="text-muted small">Áreas: {{ p.areas_txt or '—' }}</span>
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#proc-{{ p.id }}">
+        <strong class="me-2 proc-name">{{ p.nombre }}</strong>
+        <span class="text-muted small">Áreas: {{ p.areas_txt }}</span>
+      </button>
+    </h2>
+    <div id="proc-{{ p.id }}" class="accordion-collapse collapse">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-5">
+            <div class="card">
+                <div class="card-header py-2"><strong>Descripción</strong></div>
+                <div class="card-body">
+                    <p class="mb-0">{{ p.descripcion or "—" }}</p>
+                    <div class="mt-2 d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary"
+                            href="{{ url_for('admin_proceso_detalle', id=p.id) }}">Abrir ficha</a>
+                        <a class="btn btn-sm btn-outline-secondary"
+                            href="{{ url_for('admin_procesos_etapas', id=p.id) }}">Gestionar etapas</a>
+                        <a class="btn btn-sm btn-outline-primary"
+                            href="{{ url_for('admin_proceso_detalle', id=p.id) }}">Abrir ficha</a>
+                    </div>
+                </div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <div class="card">
+              <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>Receta / Insumos</strong>
+                <span class="text-muted small">Σ(cantidad × costo ref)</span>
+              </div>
+              <div class="card-body">
+                <form method="post" class="row g-2 mb-2">
+                  <input type="hidden" name="accion" value="add_insumo">
+                  <input type="hidden" name="proceso_id" value="{{ p.id }}">
+                  <div class="col-md-6">
+                    <select name="mercancia_id" class="form-select form-select-sm" required>
+                      <option value="">Mercancía</option>
+                      {% for m in mercancias %}<option value="{{ m.id }}">{{ m.nombre }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-2"><input name="unidad" class="form-control form-control-sm" placeholder="UDM"></div>
+                  <div class="col-md-2"><input type="number" step="0.0001" min="0" name="cantidad" class="form-control form-control-sm" placeholder="Cant." required></div>
+                  <div class="col-md-1"><input type="number" step="0.01" min="0" name="merma_pct" class="form-control form-control-sm" placeholder="%"></div>
+                  <div class="col-md-1"><button class="btn btn-sm btn-primary w-100">+</button></div>
+                </form>
+
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0 insumos">
+                    <thead>
+                      <tr><th>Mercancía</th><th class="text-end">Cant.</th><th>UDM</th>
+                          <th class="text-end">Costo ref</th><th class="text-end">Subtotal</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                      {% set total = 0 %}
+                      {% for it in items if it.proceso_id == p.id %}
+                        {% set costo = (it.costo_ref or 0) %}
+                        {% set sub = (it.cantidad or 0) * costo %}
+                        {% set total = total + sub %}
+                        <tr class="insumo-row">
+                          <td class="insumo-name">{{ it.mercancia }}</td>
+                          <td class="text-end">{{ it.cantidad }}</td>
+                          <td>{{ it.unidad or '—' }}</td>
+                          <td class="text-end">{{ "%.2f"|format(costo) }}</td>
+                          <td class="text-end">{{ "%.2f"|format(sub) }}</td>
+                          <td class="text-end">
+                            <form method="post" onsubmit="return confirm('Eliminar insumo?')">
+                              <input type="hidden" name="accion" value="del_insumo">
+                              <input type="hidden" name="proceso_id" value="{{ p.id }}">
+                              <input type="hidden" name="item_id" value="{{ it.id }}">
+                              <button class="btn btn-sm btn-outline-danger">×</button>
+                            </form>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th colspan="4" class="text-end">Total estimado</th>
+                        <th class="text-end">{{ "%.2f"|format(total) }}</th>
+                        <th></th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div> <!-- row -->
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal: nuevo proceso con MULTI-área + insumos iniciales -->
+<div class="modal fade" id="modalProceso" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form method="post" class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Nuevo proceso</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="accion" value="add_proceso">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input name="nombre" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Áreas (Ctrl/Shift para varias)</label>
+            <select name="areas[]" class="form-select" multiple required>
+              {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Descripción detallada</label>
+            <textarea name="descripcion" class="form-control" rows="6" placeholder="Describe desempaque, embalaje, controles, tiempos, EPP, etc."></textarea>
+          </div>
+        </div>
+
+        <hr class="my-3">
+        <h6 class="mb-2">Insumos iniciales (opcional)</h6>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th style="width:45%">Mercancía</th><th style="width:15%">UDM</th><th style="width:20%">Cantidad</th><th style="width:15%">% merma</th></tr></thead>
+            <tbody>
+              {% for _ in range(2) %}
+              <tr>
+                <td>
+                  <select name="insumo_mercancia_id[]" class="form-select form-select-sm">
+                    <option value="">—</option>
+                    {% for m in mercancias %}<option value="{{ m.id }}">{{ m.nombre }}</option>{% endfor %}
+                  </select>
+                </td>
+                <td><input name="insumo_unidad[]" class="form-control form-control-sm" placeholder="UDM"></td>
+                <td><input type="number" step="0.0001" min="0" name="insumo_cantidad[]" class="form-control form-control-sm" placeholder="0.0000"></td>
+                <td><input type="number" step="0.01" min="0" name="insumo_merma[]" class="form-control form-control-sm" placeholder="0"></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .accordion-button{padding:.5rem .75rem}
+  .insumos td, .insumos th{ white-space:nowrap }
+  textarea[readonly]{ background:#f8f9fa }
+</style>
+
+<script>
+(function(){
+  const fText = document.getElementById('f-text');
+  const rows = [...document.querySelectorAll('#proc-list .proc')];
+  function applyFilter(){
+    const q = (fText.value||'').toLowerCase();
+    rows.forEach(r=>{
+      const text = r.innerText.toLowerCase();
+      r.style.display = !q || text.includes(q) ? '' : 'none';
+    });
+  }
+  fText.addEventListener('input', applyFilter);
+})();
+</script>
+{% endblock %}

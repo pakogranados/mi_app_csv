@@ -1,0 +1,32 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-3">Editar Producto base</h3>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('catalogo_mp_editar', id=item.id) }}">
+    <div class="mb-3">
+      <label class="form-label">Nombre</label>
+      <input type="text"
+             name="nombre"
+             class="form-control"
+             value="{{ item.nombre }}"
+             required
+             maxlength="255"
+             autocomplete="off">
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('catalogo_mp') }}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Inventario Consolidado</h2>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Producto</th>
+            <th>Disponible</th>
+            <th>Valor Inventario</th>
+            <th>Aprobado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in inventario %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.producto }}</td>
+            <td>{{ item.disponible }}</td>
+            <td>${{ "%.2f"|format(item.valor_inventario) }}</td>
+            <td>
+                {% if item.aprobado == 1 %}
+                    ✅
+                {% else %}
+                    ❌
+                {% endif %}
+            </td>
+            <td>
+    
+                {% if item.producto_base_id %}
+                <a href="{{ url_for('inventario_movimientos_producto_base', producto_base_id=item.producto_base_id, almacen=1) }}" 
+                    class="btn btn-sm btn-info">
+                    Ver Movimientos
+                </a>
+                {% else %}
+                <a href="{{ url_for('inventario_movimientos', mercancia_id=item.id, almacen=1) }}" 
+                    class="btn btn-sm btn-info">
+                    Ver Movimientos
+                </a>
+                {% endif %}
+                
+                <a href="{{ url_for('ajustar_inventario', producto_id=item.id) }}" class="btn btn-sm btn-warning">
+                    Ajustar
+                </a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center">No hay productos en inventario.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Importar CFDI - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">📄 Importar CFDI</h1>
+            <p class="text-muted small mb-0">Carga archivos XML del portal del SAT</p>
+        </div>
+        <a href="{{ url_for('facturacion_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- Zona de Carga -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-upload me-2 text-primary"></i>Cargar Archivos XML</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="formUpload">
+                        <!-- Dropzone -->
+                        <div class="border border-2 border-dashed rounded p-5 text-center mb-4" 
+                             id="dropZone"
+                             ondrop="handleDrop(event)" 
+                             ondragover="handleDragOver(event)"
+                             ondragleave="handleDragLeave(event)">
+                            <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Arrastra archivos XML aquí</h5>
+                            <p class="text-muted mb-3">o</p>
+                            <label class="btn btn-primary">
+                                <i class="fas fa-folder-open me-2"></i>Seleccionar Archivos
+                                <input type="file" name="archivos[]" multiple accept=".xml" 
+                                       class="d-none" id="inputArchivos" onchange="mostrarArchivos(this.files)">
+                            </label>
+                            <p class="text-muted small mt-3 mb-0">Formatos aceptados: .xml (CFDI 3.3 y 4.0)</p>
+                        </div>
+
+                        <!-- Lista de Archivos -->
+                        <div id="listaArchivos" class="d-none">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-file-code me-2"></i>Archivos seleccionados:
+                            </h6>
+                            <div id="archivosContainer"></div>
+                            
+                            <hr class="my-4">
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary" onclick="limpiarArchivos()">
+                                    <i class="fas fa-times me-2"></i>Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-upload me-2"></i>Importar CFDI
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Últimas Importaciones -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2 text-info"></i>Últimas Importaciones</h5>
+                        <a href="{{ url_for('cfdi_listado') }}" class="btn btn-sm btn-link">Ver todos</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if ultimos_cfdi %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="px-4 py-3">UUID</th>
+                                    <th class="px-4 py-3">Emisor</th>
+                                    <th class="px-4 py-3">Fecha</th>
+                                    <th class="px-4 py-3 text-end">Total</th>
+                                    <th class="px-4 py-3 text-center">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in ultimos_cfdi %}
+                                <tr>
+                                    <td class="px-4">
+                                        <small class="text-muted font-monospace">{{ c.uuid[:8] }}...</small>
+                                    </td>
+                                    <td class="px-4">
+                                        <span class="fw-medium">{{ c.nombre_emisor or c.rfc_emisor }}</span>
+                                    </td>
+                                    <td class="px-4">
+                                        <small class="text-muted">{{ c.fecha_fmt }}</small>
+                                    </td>
+                                    <td class="px-4 text-end">
+                                        <span class="fw-bold">${{ "{:,.2f}".format(c.total) }}</span>
+                                    </td>
+                                    <td class="px-4 text-center">
+                                        {% if c.es_emitido %}
+                                        <span class="badge bg-success">Emitido</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Recibido</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-code fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No hay CFDI importados aún</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Lateral - Ayuda -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-question-circle me-2"></i>¿Cómo obtener los XML?</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li class="mb-3">
+                            Ingresa al portal del SAT:<br>
+                            <a href="https://portalcfdi.facturaelectronica.sat.gob.mx/" target="_blank" class="small">
+                                portalcfdi.facturaelectronica.sat.gob.mx
+                            </a>
+                        </li>
+                        <li class="mb-3">Inicia sesión con tu e.firma o contraseña</li>
+                        <li class="mb-3">Ve a "Consultar Facturas Recibidas" o "Emitidas"</li>
+                        <li class="mb-3">Selecciona el rango de fechas</li>
+                        <li class="mb-3">Descarga los archivos XML</li>
+                        <li>Sube los archivos aquí</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2 text-primary"></i>Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                        <div>
+                            <strong>Facturas Recibidas</strong>
+                            <p class="small text-muted mb-0">Se pueden vincular con compras registradas</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                        <div>
+                            <strong>Facturas Emitidas</strong>
+                            <p class="small text-muted mb-0">Se pueden vincular con ventas registradas</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                        <div>
+                            <strong>Detección Automática</strong>
+                            <p class="small text-muted mb-0">El sistema detecta si el CFDI es emitido o recibido según el RFC</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#dropZone {
+    transition: all 0.3s;
+    border-color: #dee2e6 !important;
+}
+#dropZone.dragover {
+    border-color: #0d6efd !important;
+    background-color: #e7f1ff;
+}
+.border-dashed {
+    border-style: dashed !important;
+}
+</style>
+
+<script>
+let archivosSeleccionados = [];
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('dropZone').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('dropZone').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('dropZone').classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    document.getElementById('inputArchivos').files = files;
+    mostrarArchivos(files);
+}
+
+function mostrarArchivos(files) {
+    if (files.length === 0) return;
+    
+    archivosSeleccionados = Array.from(files);
+    const container = document.getElementById('archivosContainer');
+    const lista = document.getElementById('listaArchivos');
+    
+    container.innerHTML = '';
+    
+    archivosSeleccionados.forEach((file, index) => {
+        const isXml = file.name.toLowerCase().endsWith('.xml');
+        const sizeKb = (file.size / 1024).toFixed(1);
+        
+        container.innerHTML += `
+            <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-file-code fa-2x ${isXml ? 'text-success' : 'text-danger'} me-3"></i>
+                    <div>
+                        <span class="fw-medium">${file.name}</span>
+                        <br><small class="text-muted">${sizeKb} KB</small>
+                    </div>
+                </div>
+                <div>
+                    ${isXml 
+                        ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Válido</span>' 
+                        : '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>No es XML</span>'}
+                </div>
+            </div>
+        `;
+    });
+    
+    lista.classList.remove('d-none');
+    document.getElementById('dropZone').classList.add('d-none');
+}
+
+function limpiarArchivos() {
+    archivosSeleccionados = [];
+    document.getElementById('inputArchivos').value = '';
+    document.getElementById('archivosContainer').innerHTML = '';
+    document.getElementById('listaArchivos').classList.add('d-none');
+    document.getElementById('dropZone').classList.remove('d-none');
+}
+</script>
+{% endblock %}

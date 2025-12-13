@@ -1,0 +1,426 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Recibir Factura {{ factura.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">📋 Recepción de Mercancía</h1>
+            <p class="text-muted small mb-0">Verifica los productos recibidos de la factura {{ factura.folio }}</p>
+        </div>
+        <a href="{{ url_for('facturacion_b2b_recibidas') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- Columna Principal - Productos -->
+        <div class="col-lg-8">
+            <!-- Info de la Factura -->
+            <div class="card border-0 shadow-sm mb-4 bg-light">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Proveedor</small>
+                            <h6 class="fw-bold mb-0">{{ factura.proveedor_nombre }}</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Folio</small>
+                            <h6 class="fw-bold mb-0 text-primary">{{ factura.folio }}</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Fecha Emisión</small>
+                            <h6 class="fw-bold mb-0">{{ factura.fecha_fmt }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checklist de Productos -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-clipboard-check me-2 text-success"></i>Verificación de Productos
+                        </h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="marcarTodos(true)">
+                                <i class="fas fa-check-double me-1"></i>Marcar Todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodos(false)">
+                                <i class="fas fa-times me-1"></i>Desmarcar Todos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <form method="POST" id="formRecepcion">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="px-4 py-3 text-center" style="width: 60px;">
+                                            <i class="fas fa-check"></i>
+                                        </th>
+                                        <th class="px-4 py-3">Producto</th>
+                                        <th class="px-4 py-3 text-center" style="width: 120px;">Facturado</th>
+                                        <th class="px-4 py-3 text-center" style="width: 140px;">Recibido</th>
+                                        <th class="px-4 py-3 text-end" style="width: 120px;">P. Unit</th>
+                                        <th class="px-4 py-3 text-end" style="width: 120px;">Importe</th>
+                                        <th class="px-4 py-3" style="width: 180px;">Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in detalle %}
+                                    <tr id="row-{{ item.id }}" class="{% if item.verificado %}table-success{% endif %}">
+                                        <td class="px-4 text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input type="checkbox" 
+                                                       class="form-check-input checkbox-item" 
+                                                       name="items[{{ item.id }}][verificado]" 
+                                                       value="1"
+                                                       id="check-{{ item.id }}"
+                                                       data-row="{{ item.id }}"
+                                                       {{ 'checked' if item.verificado }}
+                                                       onchange="actualizarFila({{ item.id }})">
+                                            </div>
+                                        </td>
+                                        <td class="px-4">
+                                            <span class="fw-medium">{{ item.descripcion }}</span>
+                                            <input type="hidden" name="items[{{ item.id }}][mercancia_id]" value="{{ item.mercancia_id }}">
+                                        </td>
+                                        <td class="px-4 text-center">
+                                            <span class="badge bg-secondary">{{ "{:,.3f}".format(item.cantidad_facturada) }}</span>
+                                        </td>
+                                        <td class="px-4 text-center">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm text-center cantidad-recibida" 
+                                                   name="items[{{ item.id }}][cantidad_recibida]" 
+                                                   value="{{ item.cantidad_recibida or item.cantidad_facturada }}"
+                                                   step="0.001"
+                                                   min="0"
+                                                   data-facturado="{{ item.cantidad_facturada }}"
+                                                   data-row="{{ item.id }}"
+                                                   onchange="verificarDiferencia({{ item.id }})">
+                                        </td>
+                                        <td class="px-4 text-end">
+                                            ${{ "{:,.2f}".format(item.precio_unitario) }}
+                                        </td>
+                                        <td class="px-4 text-end fw-medium">
+                                            ${{ "{:,.2f}".format(item.importe) }}
+                                        </td>
+                                        <td class="px-4">
+                                            <input type="text" 
+                                                   class="form-control form-control-sm" 
+                                                   name="items[{{ item.id }}][notas]" 
+                                                   placeholder="Notas..."
+                                                   value="{{ item.notas_verificacion or '' }}">
+                                            <select class="form-select form-select-sm mt-1 d-none tipo-diferencia" 
+                                                    name="items[{{ item.id }}][tipo_diferencia]"
+                                                    id="tipoDif-{{ item.id }}">
+                                                <option value="">Tipo de diferencia</option>
+                                                <option value="faltante">Faltante</option>
+                                                <option value="sobrante">Sobrante</option>
+                                                <option value="dañado">Dañado</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Notas Generales -->
+                        <div class="p-4 border-top">
+                            <label class="form-label fw-medium">Notas de Recepción (opcional)</label>
+                            <textarea class="form-control" name="notas_recepcion" rows="2" 
+                                      placeholder="Observaciones generales sobre la recepción...">{{ factura.notas_recepcion or '' }}</textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Lateral - Resumen -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-clipboard-list me-2"></i>Resumen de Recepción</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Progreso -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Progreso de verificación</span>
+                            <span class="fw-bold" id="progresoText">0 / {{ detalle|length }}</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" id="progresoBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Totales -->
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal:</span>
+                            <span>${{ "{:,.2f}".format(factura.subtotal) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">IVA:</span>
+                            <span>${{ "{:,.2f}".format(factura.iva) }}</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fs-5 fw-bold">Total:</span>
+                            <span class="fs-4 fw-bold text-success">${{ "{:,.2f}".format(factura.total) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Alertas de Diferencias -->
+                    <div id="alertaDiferencias" class="alert alert-warning mt-4 d-none">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="textoDiferencias">Hay diferencias en algunas cantidades</span>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="button" class="btn btn-success btn-lg" id="btnConfirmar" onclick="confirmarRecepcion('completa')">
+                            <i class="fas fa-check-circle me-2"></i>Confirmar Recepción Completa
+                        </button>
+                        <button type="button" class="btn btn-warning" id="btnDiferencias" onclick="confirmarRecepcion('diferencias')" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Confirmar con Diferencias
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="guardarProgreso()">
+                            <i class="fas fa-save me-2"></i>Guardar Progreso
+                        </button>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Al confirmar la recepción:
+                            <ul class="mb-0 mt-2">
+                                <li>La mercancía se agregará a tu inventario MP</li>
+                                <li>Se creará la cuenta por pagar</li>
+                                <li>Se notificará al proveedor</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmación -->
+<div class="modal fade" id="modalConfirmar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <h5 class="modal-title" id="modalTitulo"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarModal" onclick="enviarFormulario()">
+                    Confirmar Recepción
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const totalItems = {{ detalle|length }};
+let tipoRecepcion = 'completa';
+
+function actualizarFila(id) {
+    const checkbox = document.getElementById('check-' + id);
+    const row = document.getElementById('row-' + id);
+    
+    if (checkbox.checked) {
+        row.classList.add('table-success');
+    } else {
+        row.classList.remove('table-success');
+    }
+    
+    actualizarProgreso();
+}
+
+function verificarDiferencia(id) {
+    const input = document.querySelector(`input[data-row="${id}"].cantidad-recibida`);
+    const facturado = parseFloat(input.dataset.facturado);
+    const recibido = parseFloat(input.value) || 0;
+    const tipoDif = document.getElementById('tipoDif-' + id);
+    const row = document.getElementById('row-' + id);
+    
+    if (Math.abs(facturado - recibido) > 0.001) {
+        tipoDif.classList.remove('d-none');
+        row.classList.add('table-warning');
+        row.classList.remove('table-success');
+    } else {
+        tipoDif.classList.add('d-none');
+        tipoDif.value = '';
+        row.classList.remove('table-warning');
+    }
+    
+    actualizarProgreso();
+    verificarDiferenciasGlobales();
+}
+
+function actualizarProgreso() {
+    const checkboxes = document.querySelectorAll('.checkbox-item');
+    let verificados = 0;
+    
+    checkboxes.forEach(cb => {
+        if (cb.checked) verificados++;
+    });
+    
+    const porcentaje = (verificados / totalItems) * 100;
+    
+    document.getElementById('progresoText').textContent = `${verificados} / ${totalItems}`;
+    document.getElementById('progresoBar').style.width = `${porcentaje}%`;
+}
+
+function verificarDiferenciasGlobales() {
+    const inputs = document.querySelectorAll('.cantidad-recibida');
+    let hayDiferencias = false;
+    let mensajes = [];
+    
+    inputs.forEach(input => {
+        const facturado = parseFloat(input.dataset.facturado);
+        const recibido = parseFloat(input.value) || 0;
+        
+        if (Math.abs(facturado - recibido) > 0.001) {
+            hayDiferencias = true;
+        }
+    });
+    
+    const alerta = document.getElementById('alertaDiferencias');
+    const btnDif = document.getElementById('btnDiferencias');
+    const btnConfirmar = document.getElementById('btnConfirmar');
+    
+    if (hayDiferencias) {
+        alerta.classList.remove('d-none');
+        btnDif.style.display = 'block';
+        btnConfirmar.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirmar Sin Diferencias';
+    } else {
+        alerta.classList.add('d-none');
+        btnDif.style.display = 'none';
+        btnConfirmar.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirmar Recepción Completa';
+    }
+}
+
+function marcarTodos(estado) {
+    const checkboxes = document.querySelectorAll('.checkbox-item');
+    checkboxes.forEach(cb => {
+        cb.checked = estado;
+        actualizarFila(cb.dataset.row);
+    });
+    
+    if (estado) {
+        // Auto-llenar cantidades recibidas con las facturadas
+        document.querySelectorAll('.cantidad-recibida').forEach(input => {
+            input.value = input.dataset.facturado;
+            verificarDiferencia(input.dataset.row);
+        });
+    }
+}
+
+function confirmarRecepcion(tipo) {
+    tipoRecepcion = tipo;
+    
+    const checkboxes = document.querySelectorAll('.checkbox-item');
+    let verificados = 0;
+    checkboxes.forEach(cb => { if (cb.checked) verificados++; });
+    
+    if (verificados === 0) {
+        alert('Debes verificar al menos un producto antes de confirmar.');
+        return;
+    }
+    
+    const modal = document.getElementById('modalConfirmar');
+    const header = document.getElementById('modalHeader');
+    const titulo = document.getElementById('modalTitulo');
+    const body = document.getElementById('modalBody');
+    const btnModal = document.getElementById('btnConfirmarModal');
+    
+    if (tipo === 'completa') {
+        header.className = 'modal-header bg-success text-white';
+        titulo.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirmar Recepción Completa';
+        body.innerHTML = `
+            <p>Estás a punto de confirmar la recepción de <strong>${verificados} productos</strong>.</p>
+            <p>Esto realizará las siguientes acciones:</p>
+            <ul>
+                <li>✅ Agregar mercancía al inventario de Materia Prima</li>
+                <li>✅ Crear cuenta por pagar por ${{ "{:,.2f}".format(factura.total) }}</li>
+                <li>✅ Notificar al proveedor que la mercancía fue recibida</li>
+            </ul>
+            <p class="mb-0 text-muted"><small>¿Deseas continuar?</small></p>
+        `;
+        btnModal.className = 'btn btn-success';
+    } else {
+        header.className = 'modal-header bg-warning';
+        titulo.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Confirmar con Diferencias';
+        body.innerHTML = `
+            <p class="text-warning"><strong>⚠️ Se detectaron diferencias en las cantidades.</strong></p>
+            <p>La mercancía se ingresará con las cantidades <strong>realmente recibidas</strong>, no las facturadas.</p>
+            <p>El proveedor será notificado de las diferencias encontradas.</p>
+            <p class="mb-0 text-muted"><small>¿Deseas continuar?</small></p>
+        `;
+        btnModal.className = 'btn btn-warning';
+    }
+    
+    new bootstrap.Modal(modal).show();
+}
+
+function enviarFormulario() {
+    const form = document.getElementById('formRecepcion');
+    
+    // Agregar campo oculto con tipo de recepción
+    const inputTipo = document.createElement('input');
+    inputTipo.type = 'hidden';
+    inputTipo.name = 'tipo_recepcion';
+    inputTipo.value = tipoRecepcion;
+    form.appendChild(inputTipo);
+    
+    form.submit();
+}
+
+function guardarProgreso() {
+    const form = document.getElementById('formRecepcion');
+    
+    const inputAccion = document.createElement('input');
+    inputAccion.type = 'hidden';
+    inputAccion.name = 'accion';
+    inputAccion.value = 'guardar_progreso';
+    form.appendChild(inputAccion);
+    
+    form.submit();
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarProgreso();
+    verificarDiferenciasGlobales();
+});
+</script>
+{% endblock %}

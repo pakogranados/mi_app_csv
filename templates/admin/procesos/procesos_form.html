@@ -1,0 +1,21 @@
+{% extends "sidebar.html" %}{% block content %}
+<h4>{{ 'Nuevo proceso' if modo=='nuevo' else 'Editar proceso' }}</h4>
+<form method="post" class="mt-3">
+  <div class="mb-3">
+    <label class="form-label">Nombre</label>
+    <input name="nombre" class="form-control" required value="{{ p.nombre if p else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Descripción</label>
+    <textarea name="descripcion" class="form-control" rows="3">{{ p.descripcion if p else '' }}</textarea>
+  </div>
+  {% if modo=='editar' %}
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="activo" name="activo" value="1" {% if p.activo %}checked{% endif %}>
+    <label class="form-check-label" for="activo">Activo</label>
+  </div>
+  {% endif %}
+  <button class="btn btn-primary" type="submit">Guardar</button>
+  <a class="btn btn-link" href="{{ url_for('listar_procesos') }}">Cancelar</a>
+</form>
+{% endblock %}

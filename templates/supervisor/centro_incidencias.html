@@ -1,0 +1,142 @@
+{% extends "sidebar.html" %}
+{% block title %}Centro de Incidencias{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="fas fa-clipboard-list text-primary"></i> Centro de Gestión de Incidencias</h3>
+    <div>
+      <span class="text-muted" id="ultimaActualizacion">Actualizado: ahora</span>
+      <button class="btn btn-outline-primary btn-sm ms-2" onclick="location.reload()">
+        <i class="fas fa-sync-alt"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="accordion" id="accordionAreas">
+    {% for area in dashboard_data %}
+    <div class="card mb-2">
+      <div class="card-header p-0" id="heading{{ area.codigo }}">
+        <button class="btn btn-link text-decoration-none w-100 text-start d-flex justify-content-between align-items-center p-3"
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#collapse{{ area.codigo }}"
+                aria-expanded="false">
+          <div class="d-flex align-items-center flex-grow-1">
+            <span class="fs-4 me-3">{{ area.icono }}</span>
+            <strong class="fs-5">{{ area.nombre }}</strong>
+            <span class="badge bg-secondary ms-3">Incidencias: {{ area.total }}</span>
+          </div>
+          
+          <div class="d-flex gap-2">
+            <span class="badge bg-success">🟢 {{ area.verde }}</span>
+            <span class="badge bg-warning text-dark">🟡 {{ area.amarillo }}</span>
+            <span class="badge bg-danger">🔴 {{ area.rojo }}</span>
+          </div>
+        </button>
+      </div>
+
+      <div id="collapse{{ area.codigo }}" 
+           class="collapse" 
+           data-bs-parent="#accordionAreas">
+        <div class="card-body p-0">
+          {% if area.incidencias %}
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 5%"></th>
+                  <th style="width: 12%">Código</th>
+                  <th style="width: 30%">Incidencia</th>
+                  <th style="width: 18%">Responsable</th>
+                  <th style="width: 10%">Severidad</th>
+                  <th style="width: 15%">Tiempo</th>
+                  <th style="width: 10%">Vence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for inc in area.incidencias %}
+                <tr class="cursor-pointer" onclick="window.location='/wip/incidencia/{{ inc.id }}/detalle'">
+                  <td class="text-center">
+                    {% if inc.semaforo == 'verde' %}🟢
+                    {% elif inc.semaforo == 'amarillo' %}🟡
+                    {% elif inc.semaforo == 'rojo' %}🔴
+                    {% else %}⚪{% endif %}
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ inc.codigo or '#' + inc.id|string }}</small>
+                  </td>
+                  <td>
+                    {{ inc.titulo }}
+                    {% if inc.prioridad == 'urgente' %}
+                      <span class="badge bg-danger">URGENTE</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ inc.responsable_nombre }}</td>
+                  <td>
+                    {% if inc.severidad == 'critica' %}
+                      <span class="badge bg-danger">CRÍTICA</span>
+                    {% elif inc.severidad == 'alta' %}
+                      <span class="badge bg-warning text-dark">ALTA</span>
+                    {% elif inc.severidad == 'media' %}
+                      <span class="badge bg-info">MEDIA</span>
+                    {% else %}
+                      <span class="badge bg-secondary">BAJA</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if inc.tiempo_transcurrido and inc.tiempo_estimado %}
+                      {{ inc.tiempo_transcurrido }} / {{ inc.tiempo_estimado }} min
+                      <small class="text-{{ 'success' if inc.semaforo == 'verde' else 'warning' if inc.semaforo == 'amarillo' else 'danger' }}">
+                        ({{ ((inc.tiempo_transcurrido / inc.tiempo_estimado) * 100)|int }}%)
+                      </small>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if inc.fecha_cumplimiento %}
+                      {{ inc.fecha_cumplimiento.strftime('%d/%m') }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="fas fa-check-circle fa-2x mb-2"></i>
+            <p class="mb-0">No hay incidencias activas en esta área</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  background-color: rgba(0,123,255,0.1);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #f8f9fa;
+}
+</style>
+
+<script>
+setInterval(() => {
+  document.getElementById('ultimaActualizacion').textContent = 
+    'Actualizado: ' + new Date().toLocaleTimeString('es-MX', {hour: '2-digit', minute: '2-digit'});
+}, 120000);
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Reparto - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-truck text-info"></i> Reparto
+            </h1>
+            <p class="text-muted mb-0">Facturas listas para entrega</p>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+        <div class="card-body">
+            {% if facturas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Factura</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Repartidor</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in facturas %}
+                        <tr>
+                            <td>
+                                <strong>{{ f.folio }}</strong>
+                                <br><small class="text-muted">Listo: {{ f.almacen_completado_fecha.strftime('%d/%m %H:%M') if f.almacen_completado_fecha else '' }}</small>
+                            </td>
+                            <td>{{ f.cliente_nombre }}</td>
+                            <td class="fw-bold">${{ '{:,.2f}'.format(f.total or 0) }}</td>
+                            <td>
+                                {% if f.repartidor_nombre %}
+                                <span class="badge bg-primary">{{ f.repartidor_nombre }}</span>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('reparto_asignar', factura_id=f.id) }}" class="d-flex gap-1">
+                                    <select name="repartidor_id" class="form-select form-select-sm" style="width: 150px;" required>
+                                        <option value="">Asignar...</option>
+                                        {% for r in repartidores %}
+                                        <option value="{{ r.id }}">{{ r.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if f.estado_reparto == 'pendiente' %}
+                                <span class="badge bg-warning text-dark">Por recoger</span>
+                                {% elif f.estado_reparto == 'en_camino' %}
+                                <span class="badge bg-info">En camino</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if f.estado_reparto == 'pendiente' %}
+                                <form method="POST" action="{{ url_for('reparto_iniciar', factura_id=f.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-info" 
+                                            onclick="return confirm('¿Iniciar reparto?')">
+                                        <i class="fas fa-play"></i> Iniciar
+                                    </button>
+                                </form>
+                                {% elif f.estado_reparto == 'en_camino' %}
+                                <a href="{{ url_for('reparto_entregar', factura_id=f.id) }}" class="btn btn-success">
+                                    <i class="fas fa-clipboard-check"></i> Entregar
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-truck fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Sin entregas pendientes</h4>
+                <p class="text-muted">Cuando almacén prepare mercancía, aparecerá aquí.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

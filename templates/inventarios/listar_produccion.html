@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Producciones Registradas</h2>
+    <a href="{{ url_for('crear_produccion') }}" class="btn btn-primary mb-3">+ Nueva Producción</a>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Producto Terminado</th>
+                <th>Cantidad</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in producciones %}
+            <tr>
+                <td>{{ p.fecha }}</td>
+                <td>{{ p.producto }}</td>
+                <td class="text-end">{{ p.cantidad_producida }}</td>
+                <td>{{ p.estado }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center">No hay producciones registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

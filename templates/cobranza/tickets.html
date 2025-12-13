@@ -1,0 +1,108 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📋 Historial de Tickets</h2>
+    <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Fecha Inicio</label>
+          <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Fecha Fin</label>
+          <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Turno</label>
+          <select name="turno_id" class="form-select">
+            <option value="">Todos los turnos</option>
+            {% for t in turnos %}
+              <option value="{{ t.id }}" {% if turno_id == t.id|string %}selected{% endif %}>
+                Turno #{{ t.id }} - {{ t.usuario_nombre }} - {{ t.fecha_apertura.strftime('%d/%m/%Y %H:%M') }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Resumen -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card bg-light">
+        <div class="card-body">
+          <h5>Total de Tickets</h5>
+          <h2>{{ cantidad_tickets }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <h5>Total en Ventas</h5>
+          <h2>${{ "%.2f"|format(total_ventas) }}</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de tickets -->
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Ticket #</th>
+              <th>Fecha/Hora</th>
+              <th>Cajero</th>
+              <th>Turno</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in ventas %}
+            <tr>
+              <td><strong>#{{ v.id }}</strong></td>
+              <td>{{ v.fecha.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+              <td>{{ v.cajero or 'N/A' }}</td>
+              <td>
+                {% if v.turno_id %}
+                  <span class="badge bg-info">Turno #{{ v.turno_id }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">Sin turno</span>
+                {% endif %}
+              </td>
+              <td class="text-end">${{ "%.2f"|format(v.total) }}</td>
+              <td class="text-center">
+                <a href="{{ url_for('ver_ticket', ticket_id=v.id) }}" class="btn btn-sm btn-outline-primary">
+                  Ver Detalle
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No hay tickets registrados</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

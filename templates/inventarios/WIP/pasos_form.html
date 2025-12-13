@@ -1,0 +1,701 @@
+{% extends "sidebar.html" %}
+{% block title %}Pasos: {{ proceso.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="mb-1">
+        <i class="fas fa-project-diagram text-primary"></i> 
+        {{ proceso.nombre }}
+      </h3>
+      <small class="text-muted">Configuración de pasos y materiales del proceso</small>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('wip.procesos_list') }}">
+      <i class="fas fa-arrow-left"></i> Volver
+    </a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Formulario para agregar nuevo paso -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">
+        <i class="fas fa-plus-circle"></i> Agregar Nueva Área/Paso
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="post" id="formPaso">
+        <input type="hidden" name="accion" value="agregar">
+        <input type="hidden" name="materiales_json" id="materialesJson" value="[]">
+        
+        <div class="row g-3">
+          <!-- Nombre del paso -->
+          <div class="col-md-12">
+            <label class="form-label fw-bold">Nombre del paso *</label>
+            <input type="text" class="form-control" name="nombre" id="nombrePaso" 
+                   placeholder="Ej: Mezcla de ingredientes" required>
+          </div>
+
+          <!-- Área y Responsable en la misma fila -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Área *</label>
+            <select class="form-select" name="area_id" id="selectArea" required>
+              <option value="">-- Seleccionar --</option>
+              {% for a in areas %}
+                <option value="{{ a.id }}">{{ a.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              Responsable(s) del Área
+              <span class="badge bg-info ms-1" id="badgeResponsables"></span>
+            </label>
+            <input class="form-control bg-light" id="inputResponsable" 
+                  placeholder="Selecciona un área primero" readonly>
+            <input type="hidden" name="responsable" id="hiddenResponsable">
+            <small class="text-muted" id="infoResponsables"></small>
+          </div>
+
+          <!-- Descripción del proceso -->
+          <div class="col-12">
+            <label class="form-label fw-bold">Descripción del proceso *</label>
+            <textarea class="form-control" name="descripcion" id="descripcionPaso" rows="4" 
+                      placeholder="Describe detalladamente las actividades de este paso..." 
+                      required></textarea>
+          </div>
+
+          <!-- Tabla de materiales -->
+          <div class="col-12" id="seccionMateriales">
+            <hr class="my-4">
+            <h5 class="mb-3">
+              <i class="fas fa-boxes text-warning"></i> 
+              Materiales del paso
+            </h5>
+            
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle" id="tablaMateriales">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 40%">Material</th>
+                    <th class="text-center" style="width: 15%">Cantidad</th>
+                    <th class="text-center" style="width: 15%">Unidad</th>
+                    <th class="text-center" style="width: 20%">Costo</th>
+                    <th class="text-center" style="width: 10%">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMateriales">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">
+                      <i class="fas fa-info-circle"></i> No hay materiales agregados. 
+                      Click en "Agregar material" para empezar.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <button type="button" class="btn btn-success btn-sm" id="btnAgregarMaterial" data-bs-toggle="modal" data-bs-target="#modalAgregarMaterial">
+              <i class="fas fa-plus"></i> Agregar material
+            </button>
+          </div>
+
+          <!-- Tiempo estimado y Validación -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              <i class="fas fa-clock text-info"></i> 
+              Tiempo estimado (minutos)
+            </label>
+            <input type="number" class="form-control" name="minutos_estimados" min="0" placeholder="30">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Requiere validación</label>
+            <select class="form-select" name="requiere_validez">
+              <option value="1" selected>Sí</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botón guardar -->
+        <div class="mt-4">
+          <button type="submit" class="btn btn-success btn-lg" id="btnGuardar">
+            <i class="fas fa-save"></i> Guardar Paso y Bloquear
+          </button>
+          <small class="text-muted ms-2">
+            <i class="fas fa-lock"></i> El paso se guardará bloqueado. Solo admin puede desbloquear.
+          </small>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lista de pasos existentes -->
+  {% if pasos %}
+    <div class="accordion mb-4" id="pasosAccordion">
+      {% for p in pasos %}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header" id="heading{{ p.id }}">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <button class="btn btn-link text-decoration-none text-dark fw-bold p-0" 
+                      type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#collapse{{ p.id }}" 
+                      aria-expanded="true">
+                <i class="fas fa-chevron-down me-2"></i>
+                <strong>PASO {{ p.orden }}:</strong> {{ p.nombre }}
+              </button>
+              
+              {% if p.bloqueado %}
+                <span class="badge bg-danger ms-2">
+                  <i class="fas fa-lock"></i> Bloqueado
+                </span>
+              {% else %}
+                <span class="badge bg-warning text-dark ms-2">
+                  <i class="fas fa-edit"></i> Editable
+                </span>
+              {% endif %}
+              
+              <span class="badge bg-secondary ms-1">{{ p.area_nombre or 'Sin área' }}</span>
+              
+              {% if p.responsable %}
+                <span class="badge bg-info ms-1">
+                  <i class="fas fa-user"></i> {{ p.responsable }}
+                </span>
+              {% endif %}
+              
+              {% if p.minutos_estimados %}
+                <span class="badge bg-warning text-dark ms-1">
+                  <i class="fas fa-clock"></i> {{ p.minutos_estimados }} min
+                </span>
+              {% endif %}
+            </div>
+            <div>
+              <span class="badge bg-success fs-6">
+                Costo: ${{ '%.2f'|format(costo_pasos.get(p.id, 0.00)) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div id="collapse{{ p.id }}" class="collapse" data-bs-parent="#pasosAccordion">
+          <div class="card-body">
+            <!-- Botón desbloquear (solo admin) -->
+            {% if p.bloqueado and session.get('rol') == 'admin' %}
+            <div class="alert alert-warning">
+              <i class="fas fa-lock"></i>
+              <strong>Este paso está bloqueado.</strong>
+              <form method="post" class="d-inline" onsubmit="return confirm('¿Desbloquear este paso para edición?');">
+                <input type="hidden" name="accion" value="desbloquear">
+                <input type="hidden" name="paso_id" value="{{ p.id }}">
+                <button type="submit" class="btn btn-sm btn-warning ms-2">
+                  <i class="fas fa-unlock"></i> Desbloquear
+                </button>
+              </form>
+            </div>
+            {% endif %}
+
+            <!-- Botón editar (si está desbloqueado) -->
+            {% if not p.bloqueado and session.get('rol') == 'admin' %}
+            <div class="alert alert-info">
+              <i class="fas fa-unlock"></i>
+              <strong>Este paso está desbloqueado y puede ser editado.</strong>
+              <a href="{{ url_for('wip.paso_editar', proceso_id=proceso.id, paso_id=p.id) }}" 
+                 class="btn btn-sm btn-primary ms-2">
+                <i class="fas fa-edit"></i> Editar Paso
+              </a>
+            </div>
+            {% endif %}
+
+            <!-- Descripción del paso -->
+            {% if p.descripcion %}
+            <div class="mb-3">
+              <h6 class="text-muted">
+                <i class="fas fa-align-left"></i> Descripción:
+              </h6>
+              <p class="mb-0">{{ p.descripcion }}</p>
+            </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- Materiales/Insumos -->
+            <h6 class="mb-3">
+              <i class="fas fa-boxes text-warning"></i> 
+              Materiales utilizados en este paso
+            </h6>
+
+            {% if insumos_map.get(p.id) %}
+            <div class="table-responsive mb-3">
+              <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Materia Prima</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Precio Unit.</th>
+                    <th class="text-end">Costo Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for i in insumos_map[p.id] %}
+                  <tr>
+                    <td>{{ i.mp_nombre }}</td>
+                    <td class="text-end">{{ '%.2f'|format(i.cantidad_por_lote) }} {{ i.unidad or '' }}</td>
+                    <td class="text-end">${{ '%.2f'|format(i.precio_unitario) }}</td>
+                    <td class="text-end fw-bold">${{ '%.2f'|format(i.costo_total) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                  <tr>
+                    <th colspan="3" class="text-end">Subtotal materiales:</th>
+                    <th class="text-end">${{ '%.2f'|format(costo_pasos.get(p.id, 0.00)) }}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              No hay materiales asignados a este paso.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Resumen de costos -->
+    <div class="card shadow-sm border-success">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <i class="fas fa-calculator"></i> Resumen de Costos del Proceso
+        </h5>
+      </div>
+      <div class="card-body">
+        <!-- Información general -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <h6 class="text-muted">
+              <i class="fas fa-list-ol"></i> Total de pasos:
+            </h6>
+            <p class="fs-5 mb-0 fw-bold">{{ pasos|length }} pasos</p>
+          </div>
+          <div class="col-md-4 text-center">
+            <h6 class="text-muted">
+              <i class="fas fa-boxes"></i> Materiales usados:
+            </h6>
+            <p class="fs-5 mb-0 fw-bold">{{ total_materiales_unicos }} tipos</p>
+          </div>
+          <div class="col-md-4 text-end">
+            <h6 class="text-muted">
+              <i class="fas fa-dollar-sign"></i> Costo total:
+            </h6>
+            <p class="fs-4 mb-0 text-success fw-bold">
+              ${{ '%.2f'|format(costo_total_proceso) }}
+            </p>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Resumen de materiales procesados -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <h6 class="text-muted mb-3">
+              <i class="fas fa-flask"></i> Materiales procesados:
+            </h6>
+            {% if resumen_materiales %}
+            <div class="row">
+              {% for material in resumen_materiales %}
+              <div class="col-md-4 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>
+                    <i class="fas fa-circle text-primary" style="font-size: 8px;"></i>
+                    {{ material.nombre }}
+                  </span>
+                  <strong>{{ '%.2f'|format(material.cantidad_total) }} {{ material.unidad }}</strong>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No hay materiales agregados aún.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Producto terminado y costo unitario -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="text-muted mb-2">
+                  <i class="fas fa-box-open"></i> Producto Terminado:
+                </h6>
+                {% if proceso.producto_terminado_nombre %}
+                  <p class="fs-5 mb-1 fw-bold">{{ proceso.producto_terminado_nombre }}</p>
+                  <p class="mb-0 text-muted">
+                    Cantidad: {{ '%.2f'|format(proceso.cantidad_producida) }} {{ proceso.unidad_produccion }}
+                  </p>
+                {% else %}
+                  <p class="text-warning mb-2">
+                    <i class="fas fa-exclamation-triangle"></i> No configurado
+                  </p>
+                  <small class="text-muted">
+                    Configure manualmente en la BD
+                  </small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card bg-success text-white">
+              <div class="card-body">
+                <h6 class="mb-2">
+                  <i class="fas fa-calculator"></i> Costo Unitario:
+                </h6>
+                {% if proceso.cantidad_producida and proceso.cantidad_producida > 0 %}
+                  <p class="fs-3 mb-1 fw-bold">
+                    ${{ '%.2f'|format(costo_total_proceso / proceso.cantidad_producida) }}
+                  </p>
+                  <p class="mb-0 opacity-75">
+                    por {{ proceso.unidad_produccion or 'unidad' }}
+                  </p>
+                {% else %}
+                  <p class="fs-5 mb-0">
+                    <i class="fas fa-question-circle"></i> Configure cantidad producida
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>No hay pasos configurados.</strong> 
+      Usa el formulario de arriba para agregar el primer paso del proceso.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal para agregar material -->
+<div class="modal fade" id="modalAgregarMaterial" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Material</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Materia Prima *</label>
+          <select class="form-select" id="modalMpSelect">
+            <option value="">-- Seleccionar --</option>
+            {% for mp in mps %}
+              <option value="{{ mp.id }}" 
+                      data-nombre="{{ mp.nombre }}"
+                      data-disponible="{{ mp.disponible }}"
+                      data-unidad="{{ mp.unidad_base }}">
+                {{ mp.nombre }} 
+                {% if mp.disponible > 0 %}
+                  (Disponible: {{ '%.2f'|format(mp.disponible) }} {{ mp.unidad_base }})
+                {% else %}
+                  (Sin existencias)
+                {% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Info de la MP -->
+        <div id="infoMP" class="alert alert-info d-none">
+          <small>
+            <strong>Producto:</strong> <span id="infoNombre"></span><br>
+            <strong>Unidad base:</strong> <span id="infoUnidad"></span><br>
+            <strong>Disponible:</strong> <span id="infoDisponible" class="text-success fw-bold"></span><br>
+            <strong>Precio por unidad:</strong> $<span id="infoPrecio"></span> / <span id="infoPrecioUnidad"></span><br>
+            <span id="infoEjemplo" class="text-muted"></span>
+          </small>
+        </div>
+
+        <!-- Alerta de inventario insuficiente -->
+        <div id="alertaInventario" class="alert alert-danger d-none">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Inventario insuficiente!</strong>
+          <p class="mb-0">Solo hay <span id="disponibleActual"></span> disponibles.</p>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Cantidad *</label>
+          <input type="number" class="form-control" id="modalCantidad" step="any" min="0" value="1">
+          <small class="text-muted">
+            Disponible: <span id="disponibleInfo">-</span>
+          </small>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Unidad (auto-detectada)</label>
+          <input type="text" class="form-control" id="modalUnidad" value="" readonly>
+        </div>
+        
+        <div class="alert alert-success d-none" id="costoPrevio">
+          <strong>Costo estimado:</strong> $<span id="costoEstimado">0.00</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmarAgregar">Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+let materialesDetectados = [];
+
+// ============ MOSTRAR MATERIALES EN TABLA ============
+function mostrarMateriales(materiales) {
+  const tbody = document.getElementById('tbodyMateriales');
+  tbody.innerHTML = '';
+  
+  if (materiales.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-muted">
+          <i class="fas fa-info-circle"></i> No hay materiales agregados.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  materiales.forEach((mat, index) => {
+    const row = `
+      <tr>
+        <td>${mat.nombre}</td>
+        <td class="text-center">
+          <input type="number" class="form-control form-control-sm text-center" 
+                 value="${mat.cantidad}" step="any" min="0"
+                 onchange="actualizarCantidad(${index}, this.value)">
+        </td>
+        <td class="text-center">
+          <input type="text" class="form-control form-control-sm text-center" 
+                 value="${mat.unidad}" readonly>
+        </td>
+        <td class="text-center">
+          <span class="badge bg-success">$${(mat.cantidad * (mat.precio_unitario || 0)).toFixed(2)}</span>
+        </td>
+        <td class="text-center">
+          <button type="button" class="btn btn-sm btn-outline-danger" 
+                  onclick="eliminarMaterial(${index})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', row);
+  });
+  
+  actualizarJSON();
+}
+
+function actualizarCantidad(index, valor) {
+  materialesDetectados[index].cantidad = parseFloat(valor) || 0;
+  mostrarMateriales(materialesDetectados);
+}
+
+function eliminarMaterial(index) {
+  materialesDetectados.splice(index, 1);
+  mostrarMateriales(materialesDetectados);
+}
+
+function actualizarJSON() {
+  document.getElementById('materialesJson').value = JSON.stringify(materialesDetectados);
+}
+
+// ============ CARGAR INFO DE MP AL SELECCIONAR ============
+document.getElementById('modalMpSelect').addEventListener('change', async function() {
+    const mpId = this.value;
+    const infoDiv = document.getElementById('infoMP');
+    const costoPrevioDiv = document.getElementById('costoPrevio');
+    
+    if (!mpId) {
+        infoDiv.classList.add('d-none');
+        costoPrevioDiv.classList.add('d-none');
+        document.getElementById('modalUnidad').value = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/wip/mercancia/${mpId}/info`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const mp = data.mercancia;
+            document.getElementById('modalCantidad').dataset.disponible = mp.disponible_unidad_base;
+            document.getElementById('disponibleInfo').textContent = 
+                mp.disponible_unidad_base.toFixed(2) + ' ' + mp.unidad_base;
+            document.getElementById('infoDisponible').textContent = 
+                mp.disponible_unidad_base.toFixed(2) + ' ' + mp.unidad_base;
+            document.getElementById('infoNombre').textContent = mp.nombre;
+            document.getElementById('infoUnidad').textContent = mp.unidad_base;
+            document.getElementById('infoPrecio').textContent = mp.precio_por_unidad_base.toFixed(4);
+            document.getElementById('infoPrecioUnidad').textContent = mp.unidad_base;
+            document.getElementById('infoEjemplo').textContent = mp.ejemplo_calculo;
+            infoDiv.classList.remove('d-none');
+            document.getElementById('modalUnidad').value = mp.unidad_base;
+            document.getElementById('modalCantidad').dataset.precioUnitario = mp.precio_por_unidad_base;
+            document.getElementById('modalCantidad').dataset.nombre = mp.nombre;
+            calcularCosto();
+        }
+    } catch (error) {
+        console.error('Error al cargar info:', error);
+        alert('Error al cargar información del material');
+    }
+});
+
+// Calcular costo en tiempo real
+document.getElementById('modalCantidad').addEventListener('input', function() {
+    calcularCosto();
+    validarInventario();
+});
+
+function calcularCosto() {
+    const cantidad = parseFloat(document.getElementById('modalCantidad').value) || 0;
+    const precioUnitario = parseFloat(document.getElementById('modalCantidad').dataset.precioUnitario) || 0;
+    const costo = cantidad * precioUnitario;
+    
+    if (cantidad > 0 && precioUnitario > 0) {
+        document.getElementById('costoEstimado').textContent = costo.toFixed(2);
+        document.getElementById('costoPrevio').classList.remove('d-none');
+    } else {
+        document.getElementById('costoPrevio').classList.add('d-none');
+    }
+}
+
+function validarInventario() {
+    const cantidad = parseFloat(document.getElementById('modalCantidad').value) || 0;
+    const disponible = parseFloat(document.getElementById('modalCantidad').dataset.disponible) || 0;
+    const alerta = document.getElementById('alertaInventario');
+    const btnConfirmar = document.getElementById('btnConfirmarAgregar');
+    
+    if (cantidad > disponible) {
+        document.getElementById('disponibleActual').textContent = 
+            disponible + ' ' + document.getElementById('modalUnidad').value;
+        alerta.classList.remove('d-none');
+        btnConfirmar.disabled = true;
+    } else {
+        alerta.classList.add('d-none');
+        btnConfirmar.disabled = false;
+    }
+}
+
+// ============ CONFIRMAR AGREGAR MATERIAL ============
+document.getElementById('btnConfirmarAgregar').addEventListener('click', function() {
+    const mpId = document.getElementById('modalMpSelect').value;
+    const cantidad = parseFloat(document.getElementById('modalCantidad').value) || 0;
+    const unidad = document.getElementById('modalUnidad').value;
+    const precio = parseFloat(document.getElementById('modalCantidad').dataset.precioUnitario) || 0;
+    const nombre = document.getElementById('modalCantidad').dataset.nombre;
+    
+    if (!mpId || cantidad <= 0) {
+        alert('Por favor completa todos los campos');
+        return;
+    }
+    
+    materialesDetectados.push({
+        mercancia_id: mpId,
+        nombre: nombre,
+        cantidad: cantidad,
+        unidad: unidad,
+        precio_unitario: precio
+    });
+    
+    mostrarMateriales(materialesDetectados);
+    
+    // Cerrar modal y limpiar
+    bootstrap.Modal.getInstance(document.getElementById('modalAgregarMaterial')).hide();
+    document.getElementById('modalMpSelect').value = '';
+    document.getElementById('modalCantidad').value = '1';
+    document.getElementById('infoMP').classList.add('d-none');
+    document.getElementById('costoPrevio').classList.add('d-none');
+});
+
+// ============ CARGAR RESPONSABLE(S) AL SELECCIONAR ÁREA ============
+document.getElementById('selectArea').addEventListener('change', async function() {
+    const areaId = this.value;
+    const inputResponsable = document.getElementById('inputResponsable');
+    const hiddenResponsable = document.getElementById('hiddenResponsable');
+    const badgeResponsables = document.getElementById('badgeResponsables');
+    const infoResponsables = document.getElementById('infoResponsables');
+    
+    if (!areaId) {
+        inputResponsable.value = '';
+        hiddenResponsable.value = '';
+        badgeResponsables.textContent = '';
+        infoResponsables.textContent = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/wip/areas/${areaId}/responsables`);
+        const data = await response.json();
+        
+        if (data.success && data.responsables.length > 0) {
+            const nombres = data.responsables.map(r => r.nombre).join(', ');
+            inputResponsable.value = nombres;
+            hiddenResponsable.value = nombres;
+            badgeResponsables.textContent = `${data.responsables.length} responsable(s)`;
+            
+            const responsablePrincipal = data.responsables.find(r => r.es_responsable);
+            if (responsablePrincipal) {
+                infoResponsables.textContent = `Responsable principal: ${responsablePrincipal.nombre}`;
+            }
+        } else {
+            inputResponsable.value = 'Sin responsable asignado';
+            hiddenResponsable.value = '';
+            badgeResponsables.textContent = '⚠️';
+            infoResponsables.innerHTML = '<span class="text-danger">Esta área no tiene responsables. <a href="/admin/usuario-areas" target="_blank">Asignar ahora</a></span>';
+        }
+    } catch (error) {
+        console.error('Error al cargar responsables:', error);
+        inputResponsable.value = 'Error al cargar';
+        hiddenResponsable.value = '';
+    }
+});
+
+// Validar antes de enviar
+document.getElementById('formPaso').addEventListener('submit', function(e) {
+  if (materialesDetectados.length === 0) {
+    if (!confirm('No hay materiales agregados. ¿Deseas continuar sin materiales?')) {
+      e.preventDefault();
+    }
+  }
+});
+</script>
+
+{% endblock %}

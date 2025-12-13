@@ -1,0 +1,30 @@
+{% if detalles %}
+<p><strong>Fecha:</strong> {{ detalles[0].fecha.strftime('%d %B %Y') }}</p>
+<p><strong>Proveedor:</strong> {{ detalles[0].proveedor }}</p>
+<p><strong>Factura:</strong> {{ detalles[0].numero_factura }}</p>
+
+<table class="table table-sm table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>Producto</th>
+            <th>Unidades</th>
+            <th>Precio Unitario</th>
+            <th>Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in detalles %}
+        <tr>
+            <td>{{ item.producto }}</td>
+            <td class="text-end">{{ item.unidades }}</td>
+            <td class="text-end">${{ "{:,.2f}".format(item.precio_unitario) }}</td>
+            <td class="text-end">${{ "{:,.2f}".format(item.precio_total) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="text-end"><strong>Total: ${{ "{:,.2f}".format(detalles[0].total) }}</strong></p>
+{% else %}
+<p>No se encontró detalle para esta compra.</p>
+{% endif %}

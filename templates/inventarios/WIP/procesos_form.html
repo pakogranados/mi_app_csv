@@ -1,0 +1,60 @@
+{% extends "sidebar.html" %}
+{% block title %}{{ item and 'Editar Proceso' or 'Nuevo Proceso' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <h3 class="mb-4">{{ item and 'Editar Proceso' or 'Nuevo Proceso de Produccion' }}</h3>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Nombre del proceso *</label>
+          <input type="text" class="form-control" name="nombre" 
+                 value="{{ item.nombre if item else '' }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Producto Terminado</label>
+          <select class="form-select" name="pt_id">
+            <option value="">-- Sin vincular --</option>
+            {% for pt in pts %}
+              <option value="{{ pt.id }}" 
+                      {% if item and item.pt_id == pt.id %}selected{% endif %}>
+                {{ pt.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+          <small class="text-muted">Opcional: vincula este proceso a un producto terminado específico</small>
+        </div>
+
+            {% if item %}
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="activo" value="1" id="activo"
+                   {% if item.activo %}checked{% endif %}>
+            <label class="form-check-label" for="activo">
+              Proceso activo
+            </label>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+          <a href="{{ url_for('wip.procesos_list') }}" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
+          </a>
+          {% if item %}
+            <a href="{{ url_for('wip.pasos', proceso_id=item.id) }}" class="btn btn-info ms-auto">
+              <i class="fas fa-list"></i> Ver Pasos
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

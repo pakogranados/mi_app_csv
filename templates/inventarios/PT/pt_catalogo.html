@@ -1,0 +1,299 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<style>
+.campo-activo {
+  animation: pulse 2s infinite;
+}
+
+.table-responsive {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+  border-bottom: 2px solid #dee2e6;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+}
+
+input[type="number"].form-control-sm {
+  text-align: right;
+}
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h4><i class="fas fa-box-open text-primary"></i> Catálogo de Productos Terminados</h4>
+  <form method="post" action="{{ url_for('pt_catalogo_guardar') }}" id="frm">
+    <button class="btn btn-primary">
+      <i class="fas fa-save"></i> Guardar cambios
+    </button>
+  </form>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-2">
+  <form method="post"
+        action="{{ url_for('pt_set_modo_masivo') }}"
+        id="frmMasivo"
+        class="d-flex align-items-center gap-2">
+    <select name="modo" class="form-select form-select-sm" style="max-width:220px">
+      <option value="manual">Marcar seleccionados como MANUAL</option>
+      <option value="auto">Marcar seleccionados como AUTO</option>
+    </select>
+    <button class="btn btn-sm btn-outline-secondary" type="submit">
+      Aplicar a seleccionados
+    </button>
+  </form>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm align-middle table-hover" id="tbl">
+    <thead>
+      <tr>
+        <th style="width:26px">
+          <input type="checkbox" id="checkAll" class="form-check-input">
+        </th>
+        <th class="text-center" style="width:150px;">Producto Terminado</th>
+        <th class="text-center" style="width:100px;">Costo</th>
+        <th class="text-center" style="width:130px;">Modo</th>
+        <th class="text-center" style="width:120px;">% Markup</th>
+        <th class="text-center" style="width:130px;">Precio Manual</th>
+        <th class="text-center" style="width:130px;">Precio Final</th>
+        <th class="text-center" style="width:180px;">Alias Caja</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr data-id="{{ it.id }}">
+        <td>
+          <input type="checkbox" name="ids[]" value="{{ it.id }}" form="frmMasivo" class="form-check-input row-check">
+        </td>
+
+        <td>
+          <strong>{{ it.nombre }}</strong>
+          <input type="hidden" name="id[]" form="frm" value="{{ it.id }}">
+        </td>
+
+        <td class="text-end">
+          <span class="costo text-muted" data-costo="{{ it.costo }}">
+            ${{ "%.2f"|format(it.costo) }}
+          </span>
+        </td>
+
+        <td>
+          <select name="modo[]" class="form-select form-select-sm modo" form="frm">
+            <option value="auto" {{ 'selected' if it.modo=='auto' else '' }}>🔄 Auto</option>
+            <option value="manual" {{ 'selected' if it.modo=='manual' else '' }}>✏️ Manual</option>
+          </select>
+        </td>
+
+        <td class="text-end">
+          <div class="input-group input-group-sm">
+            <input name="manual_pct[]" form="frm"
+                   type="number" step="0.01" min="0"
+                   class="form-control form-control-sm pct-auto"
+                   value="{{ (it.markup_pct*100)|round(2) }}">
+            <span class="input-group-text">%</span>
+          </div>
+        </td>
+
+        <td class="text-end">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">$</span>
+            <input name="precio_manual[]" form="frm"
+                   type="number" step="0.01" min="0"
+                   class="form-control form-control-sm precio-manual"
+                   value="{% if it.precio_manual is not none %}{{ '%.2f'|format(it.precio_manual) }}{% endif %}">
+          </div>
+        </td>
+
+        <td class="text-end">
+          <strong class="precio text-success fs-6">
+            ${{ "%.2f"|format(it.precio) }}
+          </strong>
+          <div class="text-muted small pct-usado">
+            ({{ (it.pct_usado*100)|round(2) }}%)
+          </div>
+        </td>
+
+        <td>
+          <input name="alias[]" form="frm"
+                 type="text"
+                 class="form-control form-control-sm"
+                 placeholder="Texto del botón"
+                 value="{{ it.alias if it.alias is not none else '' }}">
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+          <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+          Sin productos terminados
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+// ========================================
+// FUNCIÓN PARA RECALCULAR FILA
+// ========================================
+function recalcRow(tr) {
+  var costoEl = tr.querySelector('.costo');
+  var modoEl = tr.querySelector('.modo');
+  var pctAutoEl = tr.querySelector('.pct-auto');
+  var precioManualEl = tr.querySelector('.precio-manual');
+  var precioEl = tr.querySelector('.precio');
+  var pctUsadoEl = tr.querySelector('.pct-usado');
+
+  if (!costoEl || !modoEl || !pctAutoEl || !precioManualEl || !precioEl) return;
+
+  var costo = parseFloat(costoEl.dataset.costo || '0') || 0;
+  var modo = modoEl.value;
+
+  var precioUsado = 0;
+  var pctUsado = 0;
+
+  if (modo === 'manual') {
+    // MANUAL: editar precio manual, congelar markup
+    precioManualEl.readOnly = false;
+    pctAutoEl.readOnly = true;
+
+    precioManualEl.style.backgroundColor = '#fff';
+    precioManualEl.style.border = '2px solid #28a745';
+    pctAutoEl.style.backgroundColor = '#e9ecef';
+    pctAutoEl.style.border = '1px solid #ced4da';
+
+    var pm = parseFloat(precioManualEl.value || '0');
+    if (!isNaN(pm) && pm > 0) {
+      precioUsado = pm;
+      if (costo > 0) {
+        pctUsado = ((pm / costo) - 1) * 100;
+      }
+    } else {
+      var pct = parseFloat(pctAutoEl.value || '0') / 100.0;
+      if (isNaN(pct) || pct < 0) pct = 0;
+      precioUsado = costo * (1 + pct);
+      pctUsado = pct * 100;
+    }
+  } else {
+    // AUTO: editar markup, congelar precio manual
+    pctAutoEl.readOnly = false;
+    precioManualEl.readOnly = true;
+
+    pctAutoEl.style.backgroundColor = '#fff';
+    pctAutoEl.style.border = '2px solid #007bff';
+    precioManualEl.style.backgroundColor = '#e9ecef';
+    precioManualEl.style.border = '1px solid #ced4da';
+
+    var pct2 = parseFloat(pctAutoEl.value || '0') / 100.0;
+    if (isNaN(pct2) || pct2 < 0) pct2 = 0;
+    precioUsado = costo * (1 + pct2);
+    pctUsado = pct2 * 100;
+  }
+
+  if (precioUsado < 0 || isNaN(precioUsado)) precioUsado = 0;
+  if (isNaN(pctUsado)) pctUsado = 0;
+
+  precioEl.textContent = '$' + precioUsado.toFixed(2);
+  if (pctUsadoEl) {
+    pctUsadoEl.textContent = '(' + pctUsado.toFixed(2) + '%)';
+  }
+}
+
+// ========================================
+// INICIALIZACIÓN CUANDO CARGA LA PÁGINA
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // Inicializar cálculos para cada fila
+  var filas = document.querySelectorAll('#tbl tbody tr');
+  for (var i = 0; i < filas.length; i++) {
+    (function(tr) {
+      var modo = tr.querySelector('.modo');
+      var pct = tr.querySelector('.pct-auto');
+      var pm = tr.querySelector('.precio-manual');
+      
+      if (modo) {
+        modo.addEventListener('change', function() { recalcRow(tr); });
+      }
+      if (pct) {
+        pct.addEventListener('input', function() { recalcRow(tr); });
+      }
+      if (pm) {
+        pm.addEventListener('input', function() { recalcRow(tr); });
+      }
+      
+      recalcRow(tr);
+    })(filas[i]);
+  }
+
+  // ========================================
+  // CHECKBOX "SELECCIONAR TODOS"
+  // ========================================
+  var checkAll = document.getElementById('checkAll');
+  if (checkAll) {
+    checkAll.addEventListener('change', function() {
+      var isChecked = this.checked;
+      var checks = document.querySelectorAll('.row-check');
+      for (var j = 0; j < checks.length; j++) {
+        checks[j].checked = isChecked;
+      }
+    });
+  }
+
+  // Si se desmarca uno individual, actualizar checkAll
+  var rowChecks = document.querySelectorAll('.row-check');
+  for (var k = 0; k < rowChecks.length; k++) {
+    rowChecks[k].addEventListener('change', function() {
+      var allChecks = document.querySelectorAll('.row-check');
+      var checkedCount = document.querySelectorAll('.row-check:checked').length;
+      var checkAllEl = document.getElementById('checkAll');
+      if (checkAllEl) {
+        checkAllEl.checked = (checkedCount === allChecks.length);
+        checkAllEl.indeterminate = (checkedCount > 0 && checkedCount < allChecks.length);
+      }
+    });
+  }
+
+  // ========================================
+  // DRAG & DROP PARA REORDENAR
+  // ========================================
+  var tbody = document.querySelector('#tbl tbody');
+  if (tbody && typeof Sortable !== 'undefined') {
+    new Sortable(tbody, {
+      animation: 150,
+      handle: 'td',
+      onEnd: function() {
+        var rows = tbody.querySelectorAll('tr[data-id]');
+        var orden = [];
+        for (var m = 0; m < rows.length; m++) {
+          orden.push({
+            id: rows[m].dataset.id,
+            orden_pos: m + 1
+          });
+        }
+        fetch('{{ url_for("pt_catalogo_reordenar") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orden)
+        });
+      }
+    });
+  }
+
+});
+</script>
+
+{% endblock %}

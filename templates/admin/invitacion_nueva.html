@@ -1,0 +1,143 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Nueva Invitación - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-user-plus text-primary"></i> Nueva Invitación
+            </h1>
+            <p class="text-muted mb-0">Invita a un usuario a tu empresa</p>
+        </div>
+        <a href="{{ url_for('admin_invitaciones') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form method="POST">
+                <!-- Datos básicos -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-envelope"></i> Datos del Usuario</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Correo Electrónico *</label>
+                                    <input type="email" name="correo" class="form-control form-control-lg" 
+                                           required placeholder="usuario@correo.com">
+                                    <small class="text-muted">Se enviará la invitación a este correo</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre (sugerido)</label>
+                                    <input type="text" name="nombre" class="form-control form-control-lg" 
+                                           placeholder="Juan Pérez">
+                                    <small class="text-muted">El usuario puede cambiarlo al registrarse</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Rol en el Sistema</label>
+                                    <select name="rol" class="form-select">
+                                        <option value="operador">Operador (acceso básico)</option>
+                                        <option value="editor">Editor (acceso intermedio)</option>
+                                        <option value="admin">Administrador (acceso completo)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Días para expirar</label>
+                                    <select name="dias_expiracion" class="form-select">
+                                        <option value="3">3 días</option>
+                                        <option value="7" selected>7 días</option>
+                                        <option value="15">15 días</option>
+                                        <option value="30">30 días</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Áreas -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-sitemap"></i> Áreas de Trabajo</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Selecciona las áreas a las que tendrá acceso:</p>
+                        
+                        {% if areas %}
+                        <div class="row">
+                            {% for area in areas %}
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" name="areas[]" value="{{ area.id }}" 
+                                           class="form-check-input" id="area_{{ area.id }}">
+                                    <label class="form-check-label" for="area_{{ area.id }}">
+                                        <i class="{{ area.icono }}" style="color: {{ area.color }};"></i>
+                                        {{ area.nombre }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="seleccionarTodas(true)">
+                                <i class="fas fa-check-double"></i> Seleccionar todas
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="seleccionarTodas(false)">
+                                <i class="fas fa-times"></i> Deseleccionar
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No hay áreas configuradas. 
+                            <a href="{{ url_for('admin_areas') }}">Configura las áreas primero</a>.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Notas internas (opcional)</label>
+                            <textarea name="notas" class="form-control" rows="2" 
+                                      placeholder="Ej: Nuevo vendedor, inicia el lunes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane"></i> Enviar Invitación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function seleccionarTodas(checked) {
+    document.querySelectorAll('input[name="areas[]"]').forEach(cb => cb.checked = checked);
+}
+</script>
+{% endblock %}

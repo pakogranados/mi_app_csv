@@ -1,0 +1,34 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">Catálogo de Productos Terminados</h2>
+
+  <!-- Formulario para agregar nuevo PT -->
+  <form method="POST" class="row g-3 mb-4">
+    <div class="col-auto">
+      <input type="text" class="form-control" name="nombre" placeholder="Nombre del producto" required>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Agregar Producto</button>
+    </div>
+  </form>
+
+  <!-- Listado de PT -->
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th style="width: 80px; text-align:center;">ID</th>
+        <th>Nombre</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in productos %}
+      <tr>
+        <td class="text-center">{{ p.id }}</td>
+        <td>{{ p.nombre }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

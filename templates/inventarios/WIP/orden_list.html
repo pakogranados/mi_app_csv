@@ -1,0 +1,88 @@
+{% extends "sidebar.html" %}
+{% block title %}Órdenes de Producción{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">Órdenes de Producción</h3>
+    <a href="{{ url_for('wip.orden_nueva') }}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nueva Orden
+    </a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Producto</th>
+              <th class="text-end">Cantidad</th>
+              <th class="text-center">Estado</th>
+              <th>Referencia</th>
+              <th class="text-center" style="width: 200px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in ordenes %}
+            <tr>
+              <td><strong>#{{ o.id }}</strong></td>
+              <td>{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '' }}</td>
+              <td>{{ o.producto }}</td>
+              <td class="text-end">{{ '%.2f'|format(o.cantidad|float) }}</td>
+              <td class="text-center">
+                {% if o.estado == 'abierta' %}
+                  <span class="badge bg-info">Abierta</span>
+                {% elif o.estado == 'cerrada' %}
+                  <span class="badge bg-success">Cerrada</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ o.estado|capitalize }}</span>
+                {% endif %}
+              </td>
+              <td>{{ o.referencia or '—' }}</td>
+              <td class="text-center">
+                <div class="btn-group btn-group-sm" role="group">
+                  <a href="{{ url_for('wip.orden_detalle', orden_id=o.id) }}" 
+                     class="btn btn-outline-primary" title="Ver detalle">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if o.estado == 'abierta' %}
+                    <form method="POST" action="{{ url_for('wip.orden_cerrar', orden_id=o.id) }}" 
+                          style="display:inline;"
+                          onsubmit="return confirm('¿Cerrar esta orden de producción?');">
+                      <button type="submit" class="btn btn-outline-success" title="Cerrar orden">
+                        <i class="fas fa-check"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                No hay órdenes de producción registradas.
+                <a href="{{ url_for('wip.orden_nueva') }}">Crea la primera</a>.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

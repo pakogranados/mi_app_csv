@@ -1,0 +1,206 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h2 class="mb-4">{{ titulo or 'Registrar Mercancía' }}</h2>
+
+  <!-- flashes -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} mb-3">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if not solo_listado %}
+  <!-- Formulario de alta -->
+  <form method="POST" action="{{ url_for('mercancia') }}" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Nombre del producto</label>
+      <input type="text" name="nombre" class="form-control" required>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Unidad de medida</label>
+      <select name="unidad_id" class="form-select" required>
+        <option value="" selected disabled>— Selecciona —</option>
+        {% for u in unidades %}
+          <option value="{{ u.id }}">{{ u.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-5">
+      <label class="form-label">Producto base</label>
+      <div class="d-flex gap-2">
+        <select name="producto_base_id" class="form-select">
+          <option value="">-- Selecciona --</option>
+          {% for pb in productos_base %}
+            <option value="{{ pb.id }}">{{ pb.nombre }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="producto_base_nuevo" class="form-control" placeholder="o crear nuevo…">
+      </div>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Contenido Neto (presentación)</label>
+      <input type="number" name="cont_neto" step="0.001" min="0.001" class="form-control" required>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Descripción presentación (opcional)</label>
+      <input type="text" name="descripcion" class="form-control" placeholder="Hershey 660 ml">
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">IVA (%)</label>
+      <select name="iva" class="form-select">
+        <option value="0" selected>No aplica</option>
+        <option value="8">8%</option>
+        <option value="16">16%</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">IEPS (%)</label>
+      <select name="ieps" class="form-select">
+        <option value="0" selected>No aplica</option>
+        <option value="8">8%</option>
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2 align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Registrar</button>
+      <a href="{{ url_for('nueva_compra') }}" class="btn btn-success">Nueva Compra</a>
+    </div>
+  </form>
+  {% endif %}
+
+  <hr class="my-4">
+
+  <h3 class="mb-3">Mercancía Registrada</h3>
+
+  {% if productos and productos|length > 0 %}
+    <!-- Buscador -->
+    <div class="mb-3">
+      <input type="text" id="buscador" class="form-control" list="lista-mercancias" placeholder="Buscar mercancía...">
+      <datalist id="lista-mercancias">
+        {% for p in productos %}
+          <option value="{{ p.nombre }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <div class="table-responsive">
+      <table id="tabla-mercancias" class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:60px;">ID</th>
+            <th style="width:210px;">Nombre</th>
+            <th style="width:120px;">Unidad</th>
+            <th style="width:160px;">Presentaciones</th>
+            <th style="width:110px;">Cont. Neto</th>
+            <th style="width:120px;">IVA (%)</th>
+            <th style="width:120px;">IEPS (%)</th>
+            <th style="width:220px;">Producto base</th>
+            <th style="width:240px;">Cuenta (si aplica)</th>
+            <th style="width:200px;">Asignar Subcuenta</th>
+            <th style="width:110px;">Guardar</th>
+            <th style="width:110px;">Eliminar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in productos %}
+          <tr>
+            <form method="POST" action="{{ url_for('actualizar_mercancia', id=p.id) }}">
+              <td class="text-center">{{ p.id }}</td>
+              <td><input type="text" name="nombre" class="form-control" value="{{ p.nombre }}" required></td>
+              <td>
+                <select name="unidad_id" class="form-select" required>
+                  {% for u in unidades %}
+                    <option value="{{ u.id }}" {% if u.nombre == p.unidad %}selected{% endif %}>{{ u.nombre }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td class="text-muted">
+                {{ p.presentaciones or '—' }}
+              </td>
+              <td>
+                <input type="number" name="cont_neto" step="0.001" min="0" class="form-control" value="{{ p.cont_neto }}" required>
+              </td>
+              <td>
+                <select name="iva" class="form-select">
+                  <option value="0"  {% if p.iva == 0 %}selected{% endif %}>0%</option>
+                  <option value="8"  {% if p.iva == 8 %}selected{% endif %}>8%</option>
+                  <option value="16" {% if p.iva == 16 %}selected{% endif %}>16%</option>
+                </select>
+              </td>
+              <td>
+                <select name="ieps" class="form-select">
+                  <option value="0" {% if p.ieps == 0 %}selected{% endif %}>0%</option>
+                  <option value="8" {% if p.ieps == 8 %}selected{% endif %}>8%</option>
+                </select>
+              </td>
+              <td>
+                <select name="producto_base_id" class="form-select">
+                  <option value="">— Selecciona —</option>
+                  {% for pb in productos_base %}
+                    <option value="{{ pb.id }}" {% if p.producto_base_id == pb.id %}selected{% endif %}>{{ pb.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <input type="text" name="producto_base_nuevo" class="form-control mt-1" placeholder="nuevo base (opcional)">
+              </td>
+              <td>{{ p.cuenta_asignada or '—' }}</td>
+              <td>
+                <select name="subcuenta_id" class="form-select">
+                  <option value="">— Selecciona Cuenta —</option>
+                  {% for c in cuentas_catalogo %}
+                    <option value="{{ c.id }}" {% if p.subcuenta_id == c.id %}selected{% endif %}>{{ c.etiqueta }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td class="text-center">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Guardar</button>
+              </td>
+            </form>
+            <td class="text-center">
+              <form method="POST" action="{{ url_for('eliminar_mercancia', id=p.id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Borrar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">No hay mercancía registrada.</div>
+  {% endif %}
+</div>
+
+<style>
+  .highlight td { background-color:#ffe58a !important; transition: background-color 1s ease; }
+</style>
+<script>
+  const buscador = document.getElementById('buscador');
+  buscador?.addEventListener('change', function () {
+    const filtro = this.value.toLowerCase();
+    const filas = document.querySelectorAll("#tabla-mercancias tbody tr");
+    let encontrada = null;
+    for (let fila of filas) {
+      fila.classList.remove('highlight');
+      fila.style.display = "";
+      const inputNombre = fila.querySelector('input[name="nombre"]');
+      const nombre = inputNombre ? inputNombre.value.toLowerCase() : "";
+      if (nombre === filtro && filtro !== "") { encontrada = fila; break; }
+    }
+    if (encontrada) {
+      encontrada.classList.add('highlight');
+      encontrada.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else if (filtro !== "") {
+      alert("Producto no encontrado");
+    }
+  });
+</script>
+{% endblock %}

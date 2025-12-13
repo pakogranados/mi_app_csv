@@ -1,0 +1,247 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Orden {{ orden.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-file-alt text-primary"></i> {{ orden.folio }}
+            </h1>
+            <p class="text-muted mb-0">
+                {% if es_cliente %}Orden de Compra{% else %}Pedido Recibido{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if es_cliente %}
+            <a href="{{ url_for('ordenes_compra_b2b') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            {% else %}
+            <a href="{{ url_for('pedidos_recibidos_b2b') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Info Principal -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                    
+                    <!-- Estado -->
+                    {% if orden.estado == 'borrador' %}
+                    <span class="badge bg-warning text-dark fs-6"><i class="fas fa-edit"></i> Borrador</span>
+                    {% elif orden.estado == 'enviada' %}
+                    <span class="badge bg-primary fs-6"><i class="fas fa-paper-plane"></i> Enviada</span>
+                    {% elif orden.estado == 'recibida' %}
+                    <span class="badge bg-info fs-6"><i class="fas fa-inbox"></i> Recibida por Proveedor</span>
+                    {% elif orden.estado == 'aprobada' %}
+                    <span class="badge bg-success fs-6"><i class="fas fa-check"></i> Aprobada</span>
+                    {% elif orden.estado == 'facturada' %}
+                    <span class="badge bg-success fs-6"><i class="fas fa-file-invoice"></i> Facturada</span>
+                    {% elif orden.estado == 'cancelada' %}
+                    <span class="badge bg-danger fs-6"><i class="fas fa-times"></i> Cancelada</span>
+                    {% else %}
+                    <span class="badge bg-secondary fs-6">{{ orden.estado }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">Cliente:</td>
+                                    <td class="fw-bold">{{ orden.cliente_nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Proveedor:</td>
+                                    <td class="fw-bold">{{ orden.proveedor_nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Fecha:</td>
+                                    <td>{{ orden.fecha_solicitud.strftime('%d/%m/%Y %H:%M') if orden.fecha_solicitud else '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">Solicitado por:</td>
+                                    <td>{{ orden.solicitado_por_nombre or '-' }}</td>
+                                </tr>
+                                {% if orden.aprobado_por_nombre %}
+                                <tr>
+                                    <td class="text-muted">Aprobado por:</td>
+                                    <td>{{ orden.aprobado_por_nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Fecha aprobación:</td>
+                                    <td>{{ orden.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') if orden.fecha_aprobacion else '-' }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if orden.notas %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <strong><i class="fas fa-sticky-note"></i> Notas:</strong>
+                        <p class="mb-0 mt-2">{{ orden.notas }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Detalle de productos -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-boxes"></i> Productos Solicitados</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-end">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in detalle %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ d.descripcion }}</strong>
+                                        {% if d.unidad_medida %}
+                                        <br><small class="text-muted">{{ d.unidad_medida }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ d.cantidad_solicitada }}</td>
+                                    <td class="text-end">${{ '{:,.2f}'.format(d.precio_unitario or 0) }}</td>
+                                    <td class="text-end fw-bold">${{ '{:,.2f}'.format(d.importe or 0) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Sin productos
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel lateral -->
+        <div class="col-md-4">
+            <!-- Totales -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Totales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span>${{ '{:,.2f}'.format(orden.subtotal or 0) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>IVA (16%):</span>
+                        <span>${{ '{:,.2f}'.format(orden.iva or 0) }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-4">
+                        <span>Total:</span>
+                        <span class="text-primary">${{ '{:,.2f}'.format(orden.total or 0) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Acciones</h5>
+                </div>
+                <div class="card-body">
+                    {% if es_cliente %}
+                        <!-- Acciones como CLIENTE -->
+                        {% if orden.estado == 'borrador' %}
+                        <form action="{{ url_for('enviar_orden_compra_b2b', orden_id=orden.id) }}" method="POST" class="mb-2">
+                            <button type="submit" class="btn btn-primary w-100" onclick="return confirm('¿Enviar orden al proveedor?')">
+                                <i class="fas fa-paper-plane"></i> Enviar al Proveedor
+                            </button>
+                        </form>
+                        <form action="{{ url_for('cancelar_orden_compra_b2b', orden_id=orden.id) }}" method="POST">
+                            <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('¿Cancelar esta orden?')">
+                                <i class="fas fa-times"></i> Cancelar Orden
+                            </button>
+                        </form>
+                        {% elif orden.estado == 'enviada' %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-clock"></i> Esperando respuesta del proveedor
+                        </div>
+                        {% elif orden.estado == 'facturada' %}
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle"></i> Factura emitida por el proveedor
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- Acciones como PROVEEDOR -->
+                        {% if orden.estado == 'enviada' %}
+                        <form action="{{ url_for('procesar_pedido_b2b', orden_id=orden.id) }}" method="POST">
+                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('¿Procesar este pedido?')">
+                                <i class="fas fa-check"></i> Procesar Pedido
+                            </button>
+                        </form>
+                        <small class="text-muted d-block mt-2 text-center">
+                            Se enviará a Facturación para emitir factura
+                        </small>
+                        {% elif orden.estado == 'recibida' %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-file-invoice"></i> Pendiente de facturar
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Historial</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3">
+                            <i class="fas fa-circle text-primary me-2" style="font-size: 8px;"></i>
+                            <strong>Creada</strong>
+                            <br><small class="text-muted ms-3">{{ orden.fecha_creacion.strftime('%d/%m/%Y %H:%M') if orden.fecha_creacion else orden.fecha_solicitud.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </li>
+                        {% if orden.fecha_aprobacion %}
+                        <li class="mb-3">
+                            <i class="fas fa-circle text-success me-2" style="font-size: 8px;"></i>
+                            <strong>Enviada</strong>
+                            <br><small class="text-muted ms-3">{{ orden.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </li>
+                        {% endif %}
+                        {% if orden.estado == 'cancelada' %}
+                        <li class="mb-3">
+                            <i class="fas fa-circle text-danger me-2" style="font-size: 8px;"></i>
+                            <strong>Cancelada</strong>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

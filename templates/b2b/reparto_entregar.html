@@ -1,0 +1,132 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Entregar {{ factura.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-clipboard-check text-success"></i> Entrega de Mercancía
+            </h1>
+            <p class="text-muted mb-0">{{ factura.folio }} - {{ factura.cliente_nombre }}</p>
+        </div>
+        <a href="{{ url_for('reparto_b2b') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Checklist -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-list-check"></i> Verificar Entrega</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;"></th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in detalle %}
+                                <tr class="{% if d.verificado %}table-success{% endif %}">
+                                    <td class="text-center">
+                                        {% if d.verificado %}
+                                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                                        {% else %}
+                                        <i class="far fa-circle text-secondary fa-2x"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ d.descripcion }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">{{ d.cantidad_facturada }}</span>
+                                    </td>
+                                    <td>
+                                        {% if not d.verificado %}
+                                        <form method="POST" class="d-inline">
+                                            <input type="hidden" name="accion" value="verificar_item">
+                                            <input type="hidden" name="checklist_id" value="{{ d.checklist_id }}">
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-check"></i> Entregado
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="badge bg-success">✓ Entregado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Info -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Entrega</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Cliente:</strong><br>{{ factura.cliente_nombre }}</p>
+                    <p><strong>Factura:</strong><br>{{ factura.folio }}</p>
+                    <p><strong>Total:</strong><br><span class="fs-4 text-primary">${{ '{:,.2f}'.format(factura.total or 0) }}</span></p>
+                </div>
+            </div>
+
+            <!-- Progreso -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progreso</h5>
+                </div>
+                <div class="card-body">
+                    {% set listos = detalle|selectattr('verificado')|list|length %}
+                    {% set total = detalle|length %}
+                    {% set pct = (listos / total * 100) if total > 0 else 0 %}
+                    
+                    <div class="text-center mb-3">
+                        <h2 class="mb-0">{{ listos }} / {{ total }}</h2>
+                        <small class="text-muted">artículos entregados</small>
+                    </div>
+                    
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success" style="width: {{ pct }}%">
+                            {{ pct|int }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completar -->
+            {% if listos == total and total > 0 %}
+            <div class="card border-success">
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="accion" value="completar_entrega">
+                        <button type="submit" class="btn btn-success btn-lg w-100" 
+                                onclick="return confirm('¿Confirmar entrega completa?')">
+                            <i class="fas fa-check-double"></i> Confirmar Entrega
+                        </button>
+                    </form>
+                    <small class="text-muted d-block mt-2 text-center">
+                        El cliente recibirá la factura para verificar
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

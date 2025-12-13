@@ -1,0 +1,48 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Procesos de producción</h3>
+    <a class="btn btn-primary" href="{{ url_for('wip.procesos_nuevo') }}">Nuevo Proceso de Produccion</a>
+  </div>
+
+  <form class="row g-2 mb-3" method="get" action="{{ url_for('wip.procesos_list') }}">
+    <div class="col-auto">
+      <input class="form-control" type="search" name="q" value="{{ q or '' }}" placeholder="Buscar...">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-secondary">Buscar</button>
+    </div>
+  </form>
+
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Área final</th>
+        <th>Activo</th>
+        <th>Creado</th>
+        <th style="width:1%"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in procesos %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>{{ p.nombre }}</td>
+        <td>{{ p.area_responsable_final or '—' }}</td>
+        <td>{{ 'Sí' if p.activo else 'No' }}</td>
+        <td>{{ p.creado_en }}</td>
+        <td class="text-nowrap">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('wip.procesos_editar', id=p.id) }}">Editar</a>
+          <a class="btn btn-sm btn-info" href="{{ url_for('wip.pasos', proceso_id=p.id) }}">Pasos</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted">Sin procesos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

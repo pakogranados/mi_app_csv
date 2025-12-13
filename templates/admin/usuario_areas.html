@@ -1,0 +1,120 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Usuarios y Áreas - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-users-cog text-primary"></i> Usuarios y Áreas
+            </h1>
+            <p class="text-muted mb-0">Asignaciones de áreas por usuario</p>
+        </div>
+        <a href="{{ url_for('admin_areas') }}" class="btn btn-outline-primary">
+            <i class="fas fa-sitemap"></i> Ver por Área
+        </a>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ usuarios|length }}</h3>
+                    <small>Usuarios Activos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ total_areas }}</h3>
+                    <small>Áreas del Sistema</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    {% set sin_area = usuarios|selectattr('num_areas', 'equalto', 0)|list|length %}
+                    <h3 class="mb-0">{{ sin_area }}</h3>
+                    <small>Sin Área Asignada</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Puesto</th>
+                            <th>Áreas Asignadas</th>
+                            <th class="text-center"># Áreas</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td>
+                                <strong>{{ u.usuario }}</strong>
+                            </td>
+                            <td>{{ u.puesto or '-' }}</td>
+                            <td>
+                                {% if u.areas_asignadas %}
+                                <small>{{ u.areas_asignadas }}</small>
+                                {% else %}
+                                <span class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> Sin áreas asignadas
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if u.num_areas > 0 %}
+                                <span class="badge bg-success">{{ u.num_areas }}</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_usuario_asignar_areas', usuario_id=u.usuario_id) }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No hay usuarios registrados
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta si hay usuarios sin área -->
+    {% set sin_area = usuarios|selectattr('num_areas', 'equalto', 0)|list %}
+    {% if sin_area %}
+    <div class="alert alert-warning mt-4">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Atención:</strong> Hay {{ sin_area|length }} usuario(s) sin áreas asignadas:
+        <strong>
+        {% for u in sin_area %}
+            {{ u.usuario }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+        </strong>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

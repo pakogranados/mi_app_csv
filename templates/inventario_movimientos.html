@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Movimientos de {{ producto }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Movimientos de: <span class="text-primary">{{ producto }}</span></h3>
+    <a href="{{ url_for('mostrar_inventario') }}" class="btn btn-secondary">← Volver a Inventario</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-light">
+      <strong>Movimientos</strong> <span class="text-muted">(Unidades y Pesos Mexicanos)</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th rowspan="2">Fecha</th>
+              <th rowspan="2">Documento</th>
+              <th rowspan="2">Fuente</th>
+              <th class="text-center" colspan="3">UNIDADES (Contenido neto)</th>
+              <th class="text-center" colspan="4">PESOS MEXICANOS</th>
+            </tr>
+            <tr>
+              <th class="text-end">Entradas</th>
+              <th class="text-end">Salidas</th>
+              <th class="text-end">Saldo</th>
+              <th class="text-end">Entradas</th>
+              <th class="text-end">Salidas</th>
+              <th class="text-end">Saldo</th>
+              <th class="text-end">P. UNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in tabla_unidades %}
+            {% set p = tabla_pesos[loop.index0] %}
+            <tr>
+              <td>{{ u.fecha }}</td>
+              <td>{{ u.documento }}</td>
+              <td>{{ u.fuente }}</td>
+              <td class="text-end">{{ '%.2f'|format(u.entrada|default(0)) }}</td>
+              <td class="text-end">{{ '%.2f'|format(u.salida|default(0)) }}</td>
+              <td class="text-end fw-semibold">{{ '%.2f'|format(u.saldo|default(0)) }}</td>
+              <td class="text-end">${{ '%.2f'|format(p.entrada|default(0)) }}</td>
+              <td class="text-end">${{ '%.2f'|format(p.salida|default(0)) }}</td>
+              <td class="text-end fw-semibold">${{ '%.2f'|format(p.saldo|default(0)) }}</td>
+              <td class="text-end">{{ '%.4f'|format(p.pu|default(0)) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="10" class="text-center text-muted py-3">Sin movimientos</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Asignar Usuarios - {{ area.nombre }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="{{ area.icono }}" style="color: {{ area.color }};"></i> {{ area.nombre }}
+            </h1>
+            <p class="text-muted mb-0">Asignar usuarios y permisos</p>
+        </div>
+        <a href="{{ url_for('admin_areas') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <!-- Descripción del área -->
+    <div class="alert" style="background-color: {{ area.color }}20; border-left: 4px solid {{ area.color }};">
+        <strong>{{ area.codigo }}</strong> - {{ area.descripcion }}
+    </div>
+
+    <form method="POST">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Usuarios Disponibles</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Usuario</th>
+                                <th>Puesto</th>
+                                <th>Rol en Área</th>
+                                <th class="text-center">Puede Autorizar</th>
+                                <th class="text-center">Puede Editar</th>
+                                <th class="text-center">Puede Eliminar</th>
+                                <th class="text-center">Notificar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in usuarios %}
+                            <tr class="{% if u.asignado %}table-success{% endif %}">
+                                <td>
+                                    <input type="checkbox" name="usuario_id[]" value="{{ u.id }}" 
+                                           class="form-check-input usuario-check"
+                                           {% if u.asignado %}checked{% endif %}>
+                                </td>
+                                <td>
+                                    <strong>{{ u.nombre }}</strong>
+                                    {% if u.asignado %}
+                                    <span class="badge bg-success ms-2">Asignado</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ u.puesto or '-' }}</td>
+                                <td>
+                                    <select name="rol_{{ u.id }}" class="form-select form-select-sm" style="width: 130px;">
+                                        <option value="operador" {% if u.rol_area == 'operador' %}selected{% endif %}>Operador</option>
+                                        <option value="supervisor" {% if u.rol_area == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                                        <option value="responsable" {% if u.rol_area == 'responsable' %}selected{% endif %}>Responsable</option>
+                                        <option value="consulta" {% if u.rol_area == 'consulta' %}selected{% endif %}>Consulta</option>
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="autorizar_{{ u.id }}" value="1" 
+                                           class="form-check-input"
+                                           {% if u.puede_autorizar %}checked{% endif %}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="editar_{{ u.id }}" value="1" 
+                                           class="form-check-input"
+                                           {% if u.puede_editar or not u.asignado %}checked{% endif %}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="eliminar_{{ u.id }}" value="1" 
+                                           class="form-check-input"
+                                           {% if u.puede_eliminar %}checked{% endif %}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="notificar_{{ u.id }}" value="1" 
+                                           class="form-check-input"
+                                           {% if u.notificar_alertas or not u.asignado %}checked{% endif %}>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    No hay usuarios disponibles
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">
+                        <span id="selectedCount">0</span> usuarios seleccionados
+                    </span>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Asignaciones
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Leyenda de permisos -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-key"></i> Descripción de Permisos</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Puede Autorizar</strong>
+                    <p class="small text-muted mb-0">Aprobar operaciones que requieren autorización (ej: descuentos, anulaciones)</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Puede Editar</strong>
+                    <p class="small text-muted mb-0">Modificar registros existentes en el área</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Puede Eliminar</strong>
+                    <p class="small text-muted mb-0">Eliminar o anular registros del área</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Notificar</strong>
+                    <p class="small text-muted mb-0">Recibir alertas y notificaciones del área</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Seleccionar todos
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.usuario-check').forEach(cb => cb.checked = this.checked);
+    updateCount();
+});
+
+// Contador de seleccionados
+function updateCount() {
+    const count = document.querySelectorAll('.usuario-check:checked').length;
+    document.getElementById('selectedCount').textContent = count;
+}
+
+document.querySelectorAll('.usuario-check').forEach(cb => {
+    cb.addEventListener('change', updateCount);
+});
+
+// Inicializar contador
+updateCount();
+</script>
+{% endblock %}

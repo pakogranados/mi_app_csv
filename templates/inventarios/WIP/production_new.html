@@ -1,0 +1,45 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Nueva Orden de Producción</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} mb-3">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST" class="row g-3">
+                <div class="col-md-4">
+                    <label for="date" class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="date" name="date" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="finished_product_id" class="form-label">Producto Terminado</label>
+                    <select class="form-select" id="finished_product_id" name="finished_product_id" required>
+                        <option value="">Seleccione...</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="planned_quantity" class="form-label">Cantidad Planeada</label>
+                    <input type="number" step="0.01" class="form-control" id="planned_quantity" name="planned_quantity" required>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Crear Orden</button>
+                    <a href="{{ url_for('list_production') }}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

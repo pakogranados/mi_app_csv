@@ -1,0 +1,804 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<style>
+  .pos-wrap{display:grid;grid-template-columns:1.2fr 1.2fr 0.9fr;gap:12px}
+  .pos-panel{background:#fff;border:1px solid #ddd;border-radius:8px}
+  .pos-head{padding:10px 12px;border-bottom:1px solid #eee;font-weight:600}
+  .pos-body{padding:12px}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .tile{padding:10px;border:1px solid #d8d8d8;border-radius:8px;text-align:center;cursor:pointer;font-weight:600}
+  .tile.active{outline:2px solid #3a8;}
+  .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .key{padding:14px;border:1px solid #d8d8d8;border-radius:8px;text-align:center;font-size:18px;cursor:pointer}
+  .btn-lgx{padding:12px;font-size:16px}
+  .tot-row{display:flex;justify-content:space-between;margin:6px 0}
+  .money-btns .btn{width:100%;margin-bottom:8px}
+  .cart-list{max-height:56vh;overflow:auto}
+  .currency-section{margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:6px}
+  .currency-title{font-size:13px;font-weight:600;color:#666;margin-bottom:8px}
+  .denomination-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+</style>
+
+<div class="pos-wrap">
+
+  <!-- IZQ: CARRITO -->
+  <div class="pos-panel">
+    <div class="pos-head">Carrito</div>
+    <div class="pos-body">
+      <div class="cart-list">
+        <table class="table table-sm align-middle">
+          <tbody>
+            {% for r in carrito %}
+              {% set idx = loop.index0 %}
+              {% set importe = (r.cant|float * r.pu|float) - (r.desc|default(0)|float) %}
+              <tr>
+                <td class="text-truncate" style="max-width:220px">{{ r.nombre }}</td>
+                <td class="text-end">{{ "%.2f"|format(r.pu|float) }}</td>
+                <td class="text-end">x{{ "%.2f"|format(r.cant|float) }}</td>
+                <td class="text-end">{{ "%.2f"|format(importe) }}</td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('caja_eliminar', idx=idx) }}">
+                    <button class="btn btn-sm btn-outline-danger">✕</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted">Sin artículos</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Switch IVA -->
+      <form method="post" action="{{ url_for('caja_iva_toggle') }}" class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" id="ivaSwitch"
+               {% if aplica_iva %}checked{% endif %}
+               onchange="this.form.submit()">
+        <label class="form-check-label" for="ivaSwitch">Aplicar IVA</label>
+      </form>
+
+      <hr>
+      <div class="tot-row">
+        <span>Sub Total</span>
+        <strong>${{ "%.2f"|format(totals.subtotal) }}</strong>
+      </div>
+      <div class="tot-row">
+        <span>IVA</span>
+        <strong>${{ "%.2f"|format(totals.iva) }}</strong>
+      </div>
+      <div class="tot-row" style="font-size:20px">
+        <span>Total</span>
+        <strong>${{ "%.2f"|format(totals.total) }}</strong>
+      </div>
+      <div class="tot-row">
+        <span>Cobro Pesos</span>
+        <strong id="cobroPesosSidebar">$0.00</strong>
+      </div>
+      <div class="tot-row">
+        <span>Cobro Dólares</span>
+        <strong id="cobroDolaresSidebar">$0.00 USD</strong>
+      </div>
+      <div class="tot-row" style="font-size:18px; border-top:2px solid #ddd; padding-top:8px; margin-top:8px;">
+        <span>Suma Cobro</span>
+        <strong id="sumaCobro">$0.00</strong>
+      </div>
+      <div class="tot-row" style="font-size:18px;">
+        <span>Cambio</span>
+        <strong id="cambioSidebar">$0.00</strong>
+      </div>
+
+      <div class="d-grid mt-3">
+        <form method="post" action="{{ url_for('caja_cobrar') }}" id="frmCobrar">
+          <input type="hidden" name="tipo" value="ticket">
+          <input type="hidden" name="forma_pago" id="formaPagoField" value="Efectivo">
+          <input type="hidden" name="metodo_pago" value="PUE">
+          <input type="hidden" name="monto_cobrado" id="montoCobradoField">
+          <button class="btn btn-success btn-lgx" type="submit" id="btnSiguienteCliente">
+            Siguiente cliente
+          </button>
+        </form>
+      </div>
+      <!-- Botones Cancelar / Hold -->
+      <div class="d-flex gap-2 mt-2">
+        <form method="post" action="{{ url_for('caja_vaciar') }}">
+          <button class="btn btn-outline-secondary btn-lgx" type="submit">Cancelar</button>
+        </form>
+        <form method="post" action="{{ url_for('caja_hold') }}">
+          <button class="btn btn-outline-dark btn-lgx" type="submit">Hold</button>
+        </form>
+      </div>
+
+<!-- Botón de Retiro -->
+<div class="d-grid mt-2">
+  <button type="button" class="btn btn-warning btn-lgx" data-bs-toggle="modal" data-bs-target="#modalRetiro">
+    💵 Retiro de Efectivo
+  </button>
+</div>
+<div class="d-grid mt-2">
+  <a href="{{ url_for('consumos_propios') }}" class="btn btn-outline-warning btn-lgx">
+    🍦 Consumos Propios
+  </a>
+
+</div>
+<div class="d-grid mt-2">
+  <a href="{{ url_for('cerrar_turno') }}" class="btn btn-danger btn-lgx">
+    🔒 Cerrar Turno
+  </a>
+</div>
+
+      <!-- Ventas en espera -->
+      {% if holds %}
+        <hr>
+        <div class="small text-muted mb-1">Ventas en espera:</div>
+        <div class="list-group">
+          {% for h in holds %}
+            <form method="post" action="{{ url_for('caja_hold_resume', hold_id=h.id) }}" class="d-flex mb-1">
+              <button class="btn btn-sm btn-outline-primary flex-grow-1 text-start" type="submit">
+                #{{ h.id }} - ${{ h.total }}
+              </button>
+            </form>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- CENTRO: CATÁLOGO POS + TECLADO -->
+  <div class="pos-panel">
+    <div class="pos-head d-flex align-items-center justify-content-between">
+      <div>Catálogo POS</div>
+      <div class="d-flex gap-2">
+        <input id="busca" class="form-control form-control-sm" placeholder="Buscar botón" style="max-width:220px">
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="offcanvas" data-bs-target="#posSelector">
+          Elegir artículos
+        </button>
+      </div>
+    </div>
+
+    <div class="pos-body">
+      <!-- Botones rápidos -->
+      <div class="tiles mb-3" id="posTiles">
+        {% for it in items_pos %}
+          <div class="tile"
+               data-id="{{ it.id }}"
+               data-name="{{ it.label }}"
+               data-price="{{ '%.2f'|format(it.precio) }}">
+            {{ it.label }}
+            <div class="small text-muted">${{ '%.2f'|format(it.precio) }}</div>
+          </div>
+        {% else %}
+          <div class="text-muted">Pulsa "Elegir artículos" para seleccionar botones de venta.</div>
+        {% endfor %}
+      </div>
+
+      <!-- precio flexible + SKU -->
+      <div class="d-flex align-items-center mb-2">
+        <div class="input-group me-2" style="max-width:240px">
+          <span class="input-group-text">$</span>
+          <input id="precio" class="form-control" value="0.00">
+        </div>
+        <div class="ms-auto">
+          <span class="text-muted">Cantidad:</span>
+          <input id="cantidad" class="form-control d-inline-block" style="width:90px" value="" placeholder="1">
+        </div>
+      </div>
+
+
+      <!-- keypad -->
+      <div class="keypad mb-3" id="keypad">
+        {% for k in ["7","8","9","⌫","4","5","6","00","1","2","3",".","0","00","000","C"] %}
+          <div class="key" data-k="{{ k }}">{{ k }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- agregar rápido -->
+      <form class="row g-2" method="post" action="{{ url_for('caja_agregar') }}" id="frmAdd">
+        <input type="hidden" name="mercancia_id" id="mercancia_id">
+        <div class="col-7">
+          <input class="form-control" id="nombre" name="nombre" required>
+        </div>
+        <div class="col-2">
+          <input class="form-control" id="cantInput" name="cant" value="1">
+        </div>
+        <div class="col-3">
+          <input class="form-control" id="puInput" name="pu" value="0.00">
+        </div>
+        <input type="hidden" name="iva_rate" value="0.16">
+        <input type="hidden" name="desc" value="0">
+        <div class="col-12 d-grid">
+          <button class="btn btn-primary btn-lgx" type="submit">Añadir al carrito</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DER: PAGOS RÁPIDOS -->
+  <div class="pos-panel">
+    <div class="pos-head">Pago</div>
+    <div class="pos-body">
+      
+      <!-- PESOS MXN -->
+      <div class="currency-section">
+        <div class="currency-title">💵 PESOS MXN</div>
+        <div class="denomination-grid">
+          <button class="btn btn-light btn-sm" data-pay="20" type="button">$20</button>
+          <button class="btn btn-light btn-sm" data-pay="50" type="button">$50</button>
+          <button class="btn btn-light btn-sm" data-pay="100" type="button">$100</button>
+          <button class="btn btn-light btn-sm" data-pay="200" type="button">$200</button>
+          <button class="btn btn-light btn-sm" data-pay="500" type="button">$500</button>
+          <button class="btn btn-success btn-sm" id="btnExacto" type="button">
+            Exacto
+          </button>
+        </div>
+      </div>
+
+      <!-- DÓLARES USD -->
+      <div class="currency-section">
+        <div class="currency-title">💵 DÓLARES USD <span class="text-muted small">(TC: ${{ "%.2f"|format(tipo_cambio|default(20.0)) }})</span></div>
+        <div class="denomination-grid">
+          <button class="btn btn-light btn-sm" data-pay-usd="1" type="button">$1</button>
+          <button class="btn btn-light btn-sm" data-pay-usd="5" type="button">$5</button>
+          <button class="btn btn-light btn-sm" data-pay-usd="10" type="button">$10</button>
+          <button class="btn btn-light btn-sm" data-pay-usd="20" type="button">$20</button>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Selector forma de pago principal -->
+      <div class="d-flex gap-2 mb-2">
+        <button type="button" class="btn btn-outline-success btn-lgx flex-fill" id="btnEfectivo">
+          Efectivo
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-lgx flex-fill" id="btnCredito">
+          Credit
+        </button>
+      </div>
+
+      <!-- Monto recibido y cambio local -->
+      <!-- Cobro en PESOS -->
+      <div class="mb-2">
+        <label class="form-label">💵 Cobro en Pesos MXN</label>
+        <input id="cobroPesos" class="form-control" inputmode="decimal" autocomplete="off" placeholder="0.00">
+      </div>
+
+      <!-- Cobro en DÓLARES -->
+      <div class="mb-2">
+        <label class="form-label">💵 Cobro en Dólares USD</label>
+        <input id="cobroDolares" class="form-control" inputmode="decimal" autocomplete="off" placeholder="0.00">
+      </div>
+
+      <!-- Resumen -->
+      <div class="tot-row" style="background:#f0f0f0; padding:10px; border-radius:5px; margin-top:10px;">
+        <span><strong>Total Cobro:</strong></span>
+        <strong id="totalCobroLabel">$0.00</strong>
+      </div>
+      <div class="tot-row" style="background:#e8f5e9; padding:10px; border-radius:5px;">
+        <span><strong>Cambio:</strong></span>
+        <strong id="cambioLabel">$0.00</strong>
+      </div>
+
+      <hr>
+
+      <button class="btn btn-outline-dark btn-lgx w-100 mt-2" type="button">Refund</button>
+      <button class="btn btn-outline-secondary btn-lgx w-100 mt-2" type="button">Other</button>
+    </div>
+  </div>
+</div>
+
+<!-- OFFCANVAS: Selector de artículos -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="posSelector" style="width:360px">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Artículos para botones</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="post" action="{{ url_for('caja_pos_config') }}" id="frmSel">
+      <input type="text" class="form-control form-control-sm mb-2" id="filtroModal" placeholder="Buscar...">
+      <div class="table-responsive" style="max-height:60vh;overflow:auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th style="width:36px"></th>
+              <th>Artículo</th>
+              <th class="text-end">Precio</th>
+            </tr>
+          </thead>
+          <tbody id="tblModal">
+            {% for it in items_all %}
+              <tr>
+                <td>
+                  <input type="checkbox" name="sel[]" value="{{ it.id }}"
+                         {% if it.id in sel_ids %}checked{% endif %}>
+                </td>
+                <td>{{ it.label }}</td>
+                <td class="text-end">${{ '%.2f'|format(it.precio) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <small class="text-muted d-block mb-2">Se guarda en esta sesión.</small>
+      <div class="d-grid">
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Modal Retiro de Efectivo -->
+<div class="modal fade" id="modalRetiro" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">💰 Retiro Parcial de Efectivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('registrar_retiro') }}" id="frmRetiro">
+        <div class="modal-body">
+          
+          <h6 class="mb-3">💵 Billetes en Pesos MXN</h6>
+          <div class="row g-3 mb-4">
+            <!-- $20 -->
+            <div class="col-md-6">
+              <label class="form-label">Billetes de $20</label>
+              <div class="input-group">
+                <input type="number" name="billetes_20" class="form-control denominacion" 
+                       min="0" value="0" data-valor="20" id="bill20">
+                <span class="input-group-text">× $20 =</span>
+                <span class="input-group-text fw-bold" id="equiv20">$0.00</span>
+              </div>
+            </div>
+            <!-- $50 -->
+            <div class="col-md-6">
+              <label class="form-label">Billetes de $50</label>
+              <div class="input-group">
+                <input type="number" name="billetes_50" class="form-control denominacion" 
+                       min="0" value="0" data-valor="50" id="bill50">
+                <span class="input-group-text">× $50 =</span>
+                <span class="input-group-text fw-bold" id="equiv50">$0.00</span>
+              </div>
+            </div>
+            <!-- $100 -->
+            <div class="col-md-6">
+              <label class="form-label">Billetes de $100</label>
+              <div class="input-group">
+                <input type="number" name="billetes_100" class="form-control denominacion" 
+                       min="0" value="0" data-valor="100" id="bill100">
+                <span class="input-group-text">× $100 =</span>
+                <span class="input-group-text fw-bold" id="equiv100">$0.00</span>
+              </div>
+            </div>
+            <!-- $200 -->
+            <div class="col-md-6">
+              <label class="form-label">Billetes de $200</label>
+              <div class="input-group">
+                <input type="number" name="billetes_200" class="form-control denominacion" 
+                       min="0" value="0" data-valor="200" id="bill200">
+                <span class="input-group-text">× $200 =</span>
+                <span class="input-group-text fw-bold" id="equiv200">$0.00</span>
+              </div>
+            </div>
+            <!-- $500 -->
+            <div class="col-md-6">
+              <label class="form-label">Billetes de $500</label>
+              <div class="input-group">
+                <input type="number" name="billetes_500" class="form-control denominacion" 
+                       min="0" value="0" data-valor="500" id="bill500">
+                <span class="input-group-text">× $500 =</span>
+                <span class="input-group-text fw-bold" id="equiv500">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="mb-3">💵 Dólares USD</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Monto en Dólares</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="dolares" class="form-control" 
+                       step="0.01" min="0" value="0" id="dolaresInput">
+                <span class="input-group-text">USD</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Equivalente en Pesos</label>
+              <div class="input-group">
+                <span class="input-group-text">TC: ${{ "%.2f"|format(tipo_cambio|default(20.0)) }}</span>
+                <input type="text" class="form-control fw-bold" id="dolaresEnPesos" readonly>
+                <span class="input-group-text">MXN</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total calculado -->
+          <div class="card bg-light">
+            <div class="card-body">
+              <div class="row mb-2">
+                <div class="col-6">
+                  <strong>💵 Total en Pesos:</strong>
+                </div>
+                <div class="col-6 text-end">
+                  <h5 class="mb-0 text-primary" id="totalPesos">$0.00</h5>
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-6">
+                  <strong>💵 Total en Dólares (equivalente):</strong>
+                </div>
+                <div class="col-6 text-end">
+                  <h5 class="mb-0 text-info" id="totalDolaresEquiv">$0.00</h5>
+                </div>
+              </div>
+              <hr>
+              <div class="row">
+                <div class="col-6">
+                  <strong>💰 TOTAL GENERAL:</strong>
+                </div>
+                <div class="col-6 text-end">
+                  <h3 class="mb-0 text-success" id="totalGeneral">$0.00</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campo oculto para enviar el total -->
+          <input type="hidden" name="monto" id="montoTotal">
+          <input type="hidden" name="motivo" value="Retiro parcial">
+
+          <div class="mb-3 mt-3">
+            <label class="form-label">Notas adicionales (opcional)</label>
+            <textarea name="notas" class="form-control" rows="2" 
+                      placeholder="Ej: Retiro autorizado por gerente, resguardo en caja fuerte..."></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning" id="btnConfirmarRetiro" disabled>
+            💵 Registrar Retiro
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // ===== Refs básicos =====
+  const frmAdd      = document.getElementById('frmAdd');
+  const hidId       = document.getElementById('mercancia_id');
+  const nombre      = document.getElementById('nombre');
+  const precioIn    = document.getElementById('puInput');
+  const precioDisp  = document.getElementById('precio');
+  const cantidadUI  = document.getElementById('cantidad');
+  const cantIn      = document.getElementById('cantInput');
+
+  // ===== Filtro Offcanvas =====
+  const filtroModal = document.getElementById('filtroModal');
+  if (filtroModal) {
+    filtroModal.addEventListener('input', () => {
+      const q = filtroModal.value.toLowerCase();
+      document.querySelectorAll('#tblModal tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // ===== Filtro de tiles =====
+  const busca = document.getElementById('busca');
+  if (busca) {
+    busca.addEventListener('input', () => {
+      const q = busca.value.toLowerCase();
+      document.querySelectorAll('#posTiles .tile').forEach(t => {
+        t.style.display = t.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // ===== Tiles: agregar producto usando cantidad actual =====
+  if (frmAdd && cantIn && cantidadUI && hidId && nombre && precioIn) {
+    document.querySelectorAll('#posTiles .tile').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('#posTiles .tile').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+
+        const id  = t.dataset.id || '';
+        const nom = t.dataset.name || '';
+        const p   = (parseFloat(t.dataset.price || '0') || 0).toFixed(2);
+
+        hidId.value    = id;
+        nombre.value   = nom;
+        precioIn.value = p;
+
+        let cantVal = cantidadUI.value.trim();
+        cantIn.value = cantVal || '1';
+
+        frmAdd.requestSubmit();
+      });
+    });
+
+    frmAdd.addEventListener('submit', () => {
+      cantIn.value = cantidadUI.value || '1';
+    });
+  }
+
+  // ================= PAGO: COBRO, CAMBIO, FORMAS =================
+
+  const totalVenta    = {{ "%.2f"|format(totals.total) }};
+  const tipoCambio    = {{ "%.2f"|format(tipo_cambio|default(20.0)) }};
+  const cobroPesos    = document.getElementById('cobroPesos');
+  const cobroDolares  = document.getElementById('cobroDolares');
+  const cambioLabel   = document.getElementById('cambioLabel');
+  const totalCobroLabel = document.getElementById('totalCobroLabel');
+  const cobroPesosSidebar  = document.getElementById('cobroPesosSidebar');
+  const cobroDolaresSidebar = document.getElementById('cobroDolaresSidebar');
+  const sumaCobro     = document.getElementById('sumaCobro');
+  const cambioSidebar = document.getElementById('cambioSidebar');
+  const hiddenMonto   = document.getElementById('montoCobradoField');
+  const formaPagoField= document.getElementById('formaPagoField');
+  const btnEfectivo   = document.getElementById('btnEfectivo');
+  const btnCredito    = document.getElementById('btnCredito');
+  const btnSiguiente  = document.getElementById('btnSiguienteCliente');
+  const quickPayBtns  = document.querySelectorAll('[data-pay]');
+  const usdPayBtns    = document.querySelectorAll('[data-pay-usd]');
+  const exactoBtn     = document.getElementById('btnExacto');
+
+  let keypadMode = 'cantidad';
+  let activeInput = null;
+
+  function actualizarCambio() {
+    const pesos = parseFloat(cobroPesos?.value || '0') || 0;
+    const dolares = parseFloat(cobroDolares?.value || '0') || 0;
+    
+    const dolaresEnPesos = dolares * tipoCambio;
+    const totalCobro = pesos + dolaresEnPesos;
+    
+    let cambio = totalCobro - totalVenta;
+    if (cambio < 0) cambio = 0;
+    
+    if (cobroPesosSidebar)  cobroPesosSidebar.textContent  = '$' + pesos.toFixed(2);
+    if (cobroDolaresSidebar) cobroDolaresSidebar.textContent = '$' + dolaresEnPesos.toFixed(2);
+    if (sumaCobro)          sumaCobro.textContent          = '$' + totalCobro.toFixed(2);
+    if (cambioSidebar)      cambioSidebar.textContent      = '$' + cambio.toFixed(2);
+    
+    if (totalCobroLabel)    totalCobroLabel.textContent    = '$' + totalCobro.toFixed(2);
+    if (cambioLabel)        cambioLabel.textContent        = '$' + cambio.toFixed(2);
+    
+    if (hiddenMonto)        hiddenMonto.value = totalCobro > 0 ? totalCobro.toFixed(2) : '';
+  }
+
+  if (cobroPesos) {
+    cobroPesos.addEventListener('focus', () => {
+      keypadMode = 'pesos';
+      activeInput = cobroPesos;
+    });
+    cobroPesos.addEventListener('input', actualizarCambio);
+    cobroPesos.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (cobroDolares) cobroDolares.focus();
+      }
+    });
+  }
+
+  if (cobroDolares) {
+    cobroDolares.addEventListener('focus', () => {
+      keypadMode = 'dolares';
+      activeInput = cobroDolares;
+    });
+    cobroDolares.addEventListener('input', actualizarCambio);
+    cobroDolares.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        actualizarCambio();
+        if (btnSiguiente) btnSiguiente.click();
+      }
+    });
+  }
+
+  if (btnEfectivo) {
+    btnEfectivo.addEventListener('click', () => {
+      if (formaPagoField) formaPagoField.value = 'Efectivo';
+      keypadMode = 'pesos';
+      if (cobroPesos) cobroPesos.focus();
+    });
+  }
+
+  if (btnCredito) {
+    btnCredito.addEventListener('click', () => {
+      if (formaPagoField) formaPagoField.value = 'Tarjeta';
+      keypadMode = 'pesos';
+      if (cobroPesos) cobroPesos.focus();
+    });
+  }
+
+  // ================= TECLADO NUMÉRICO =================
+
+  function aplicarKeypadCantidad(valor) {
+    if (!cantidadUI) return;
+    let txt = (cantidadUI.value || '').toString().trim();
+
+    if (valor === 'C') {
+      cantidadUI.value = '';
+      return;
+    }
+    if (valor === '⌫') {
+      txt = txt.slice(0, -1);
+      cantidadUI.value = txt;
+      return;
+    }
+    if (!/^[0-9.]+$/.test(valor)) {
+      return;
+    }
+
+    // Si está vacío o es '0', reemplazar
+    if (txt === '' || txt === '0') {
+      cantidadUI.value = valor;
+    } else {
+      // Concatenar
+      cantidadUI.value = txt + valor;
+    }
+  }
+
+
+  function aplicarKeypadCobro(valor) {
+    const input = activeInput || cobroPesos;
+    if (!input) return;
+    
+    let txt = (input.value || '').toString();
+
+    if (valor === 'C') {
+      input.value = '';
+    } else if (valor === '⌫') {
+      input.value = txt.slice(0, -1);
+    } else {
+      txt = txt.replace(/\s/g, '');
+      input.value = txt ? txt + valor : valor;
+    }
+    actualizarCambio();
+  }
+
+  document.querySelectorAll('.key').forEach(k => {
+    k.addEventListener('click', () => {
+      const v = k.dataset.k;
+      if (keypadMode === 'pesos' || keypadMode === 'dolares') {
+        aplicarKeypadCobro(v);
+      } else {
+        aplicarKeypadCantidad(v);
+      }
+    });
+  });
+
+  quickPayBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!cobroPesos) return;
+      const val = parseFloat(btn.dataset.pay) || 0;
+      const actual = parseFloat(cobroPesos.value) || 0;
+      keypadMode = 'pesos';
+      activeInput = cobroPesos;
+      cobroPesos.value = (actual + val).toFixed(2);  // SUMA en lugar de reemplazar
+      actualizarCambio();
+      cobroPesos.focus();
+    });
+  });
+
+  usdPayBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!cobroDolares) return;
+      const usdAmount = parseFloat(btn.dataset.payUsd) || 0;
+      const actual = parseFloat(cobroDolares.value) || 0;
+      keypadMode = 'dolares';
+      activeInput = cobroDolares;
+      cobroDolares.value = (actual + usdAmount).toFixed(2);  // SUMA en lugar de reemplazar
+      actualizarCambio();
+      cobroDolares.focus();
+    });
+  });
+
+
+  if (exactoBtn) {
+    exactoBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!cobroPesos) return;
+      keypadMode = 'pesos';
+      activeInput = cobroPesos;
+      cobroPesos.value = totalVenta.toFixed(2);
+      if (cobroDolares) cobroDolares.value = '';
+      actualizarCambio();
+      cobroPesos.focus();
+    });
+  }
+
+  // ================= MODAL RETIRO DE EFECTIVO =================
+
+  function calcularTotalRetiro() {
+    const bill20 = parseInt(document.getElementById('bill20')?.value || '0') || 0;
+    const bill50 = parseInt(document.getElementById('bill50')?.value || '0') || 0;
+    const bill100 = parseInt(document.getElementById('bill100')?.value || '0') || 0;
+    const bill200 = parseInt(document.getElementById('bill200')?.value || '0') || 0;
+    const bill500 = parseInt(document.getElementById('bill500')?.value || '0') || 0;
+
+    const equiv20 = bill20 * 20;
+    const equiv50 = bill50 * 50;
+    const equiv100 = bill100 * 100;
+    const equiv200 = bill200 * 200;
+    const equiv500 = bill500 * 500;
+
+    const elEquiv20 = document.getElementById('equiv20');
+    const elEquiv50 = document.getElementById('equiv50');
+    const elEquiv100 = document.getElementById('equiv100');
+    const elEquiv200 = document.getElementById('equiv200');
+    const elEquiv500 = document.getElementById('equiv500');
+
+    if (elEquiv20) elEquiv20.textContent = '$' + equiv20.toFixed(2);
+    if (elEquiv50) elEquiv50.textContent = '$' + equiv50.toFixed(2);
+    if (elEquiv100) elEquiv100.textContent = '$' + equiv100.toFixed(2);
+    if (elEquiv200) elEquiv200.textContent = '$' + equiv200.toFixed(2);
+    if (elEquiv500) elEquiv500.textContent = '$' + equiv500.toFixed(2);
+
+    const totalPesos = equiv20 + equiv50 + equiv100 + equiv200 + equiv500;
+
+    const dolares = parseFloat(document.getElementById('dolaresInput')?.value || '0') || 0;
+    const dolaresEnPesos = dolares * tipoCambio;
+    const totalGeneral = totalPesos + dolaresEnPesos;
+
+    const elTotalPesos = document.getElementById('totalPesos');
+    const elDolaresEnPesos = document.getElementById('dolaresEnPesos');
+    const elTotalDolaresEquiv = document.getElementById('totalDolaresEquiv');
+    const elTotalGeneral = document.getElementById('totalGeneral');
+    const elMontoTotal = document.getElementById('montoTotal');
+    const btnConfirmar = document.getElementById('btnConfirmarRetiro');
+
+    if (elTotalPesos) elTotalPesos.textContent = '$' + totalPesos.toFixed(2);
+    if (elDolaresEnPesos) elDolaresEnPesos.value = '$' + dolaresEnPesos.toFixed(2);
+    if (elTotalDolaresEquiv) elTotalDolaresEquiv.textContent = '$' + dolaresEnPesos.toFixed(2);
+    if (elTotalGeneral) elTotalGeneral.textContent = '$' + totalGeneral.toFixed(2);
+    if (elMontoTotal) elMontoTotal.value = totalGeneral.toFixed(2);
+
+    if (btnConfirmar) {
+      btnConfirmar.disabled = totalGeneral <= 0;
+    }
+  }
+
+  document.querySelectorAll('#bill20, #bill50, #bill100, #bill200, #bill500, #dolaresInput').forEach(input => {
+    input.addEventListener('input', calcularTotalRetiro);
+  });
+
+  document.getElementById('modalRetiro')?.addEventListener('show.bs.modal', function() {
+    const el20 = document.getElementById('bill20');
+    const el50 = document.getElementById('bill50');
+    const el100 = document.getElementById('bill100');
+    const el200 = document.getElementById('bill200');
+    const el500 = document.getElementById('bill500');
+    const elDol = document.getElementById('dolaresInput');
+    
+    if (el20) el20.value = 0;
+    if (el50) el50.value = 0;
+    if (el100) el100.value = 0;
+    if (el200) el200.value = 0;
+    if (el500) el500.value = 0;
+    if (elDol) elDol.value = 0;
+    
+    calcularTotalRetiro();
+  });
+
+  document.getElementById('frmRetiro')?.addEventListener('submit', function(e) {
+    const total = parseFloat(document.getElementById('montoTotal')?.value || '0') || 0;
+    
+    if (total <= 0) {
+      e.preventDefault();
+      alert('Debes ingresar al menos una denominación');
+      return false;
+    }
+    
+    if (!confirm(`¿Confirmas retirar $${total.toFixed(2)} de la caja?`)) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+{% endblock %}

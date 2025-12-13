@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Código - ERP Sistema</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+        }
+        .codigo-input {
+            font-size: 32px;
+            text-align: center;
+            letter-spacing: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">📧 Confirma tu Código</h2>
+                <p class="text-muted">Hemos enviado un código de 6 dígitos a:</p>
+                <p class="fw-bold">{{ email }}</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show">
+                        {{ message|safe }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-center d-block">Código de Confirmación</label>
+                    <input type="text" 
+                           name="codigo" 
+                           class="form-control codigo-input" 
+                           placeholder="000000" 
+                           maxlength="6" 
+                           pattern="[0-9]{6}"
+                           required 
+                           autofocus>
+                    <small class="text-muted d-block text-center mt-2">Ingresa los 6 dígitos que recibiste por correo</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                    Confirmar Cuenta
+                </button>
+
+                <div class="text-center">
+                    <small class="text-muted">¿No recibiste el código?</small><br>
+                    <a href="{{ url_for('registro') }}" class="text-decoration-none">Registrarse de nuevo</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-formato del código
+        const input = document.querySelector('input[name="codigo"]');
+        input.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body>
+</html>
+```

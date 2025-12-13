@@ -1,0 +1,140 @@
+{% extends "sidebar.html" %}
+{% block title %}Centro de Alertas{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="fas fa-bell text-warning"></i> Centro de Alertas del Sistema</h3>
+    <div>
+      <span class="text-muted" id="ultimaActualizacion">Actualizado: ahora</span>
+      <button class="btn btn-outline-primary btn-sm ms-2" onclick="location.reload()">
+        <i class="fas fa-sync-alt"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="accordion" id="accordionAreas">
+    {% for area in dashboard_data %}
+    <div class="card mb-2">
+      <div class="card-header p-0" id="heading{{ area.codigo }}">
+        <button class="btn btn-link text-decoration-none w-100 text-start d-flex justify-content-between align-items-center p-3"
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#collapse{{ area.codigo }}"
+                aria-expanded="false">
+          <div class="d-flex align-items-center flex-grow-1">
+            <span class="fs-4 me-3">{{ area.icono }}</span>
+            <strong class="fs-5">{{ area.nombre }}</strong>
+            <span class="badge bg-secondary ms-3">Alertas: {{ area.total }}</span>
+          </div>
+          
+          <div class="d-flex gap-2">
+            {% if area.vencidas > 0 %}
+            <span class="badge bg-danger">⏰ Vencidas: {{ area.vencidas }}</span>
+            {% endif %}
+            {% if area.urgentes > 0 %}
+            <span class="badge bg-danger">🔴 Urgentes: {{ area.urgentes }}</span>
+            {% endif %}
+            {% if area.altas > 0 %}
+            <span class="badge bg-warning text-dark">🟡 Importantes: {{ area.altas }}</span>
+            {% endif %}
+          </div>
+        </button>
+      </div>
+
+      <div id="collapse{{ area.codigo }}" 
+           class="collapse" 
+           data-bs-parent="#accordionAreas">
+        <div class="card-body p-0">
+          {% if area.alertas %}
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 5%"></th>
+                  <th style="width: 12%">Código</th>
+                  <th style="width: 35%">Alerta</th>
+                  <th style="width: 15%">Tipo</th>
+                  <th style="width: 15%">Referencia</th>
+                  <th style="width: 13%">Vence</th>
+                  <th style="width: 5%"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alerta in area.alertas %}
+                <tr class="cursor-pointer {% if alerta.estado_tiempo == 'vencida' %}table-danger{% elif alerta.prioridad == 'urgente' %}table-warning{% endif %}" 
+                    onclick="window.location='/wip/alerta/{{ alerta.id }}/detalle'">
+                  <td class="text-center">
+                    {% if alerta.estado_tiempo == 'vencida' %}⏰
+                    {% elif alerta.prioridad == 'urgente' %}🔴
+                    {% elif alerta.prioridad == 'alta' %}🟡
+                    {% else %}🔵{% endif %}
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ alerta.codigo }}</small>
+                  </td>
+                  <td>{{ alerta.titulo }}</td>
+                  <td>
+                    <span class="badge bg-secondary">{{ alerta.tipo_alerta.replace('_', ' ').title() }}</span>
+                  </td>
+                  <td>
+                    {% if alerta.referencia_codigo %}
+                      <small>{{ alerta.referencia_codigo }}</small>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if alerta.fecha_limite %}
+                      <small class="{{ 'text-danger fw-bold' if alerta.estado_tiempo == 'vencida' else '' }}">
+                        {{ alerta.fecha_limite.strftime('%d/%m %H:%M') }}
+                      </small>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="fas fa-check-circle fa-2x mb-2"></i>
+            <p class="mb-0">No hay alertas pendientes en esta área</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  background-color: rgba(0,123,255,0.1);
+}
+</style>
+
+<script>
+setInterval(() => {
+  document.getElementById('ultimaActualizacion').textContent = 
+    'Actualizado: ' + new Date().toLocaleTimeString('es-MX', {hour: '2-digit', minute: '2-digit'});
+}, 120000);
+</script>
+{% endblock %}
+```
+
+---
+
+**Guarda y prueba accediendo a:**
+```
+http://127.0.0.1:5000/wip/centro-alertas

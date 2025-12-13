@@ -1,0 +1,315 @@
+{% extends "sidebar.html" %}
+
+{% block title %}CFDI Importados - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">📄 CFDI Importados</h1>
+            <p class="text-muted small mb-0">Facturas electrónicas del SAT</p>
+        </div>
+        <div>
+            <a href="{{ url_for('cfdi_importar') }}" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Importar XML
+            </a>
+            <a href="{{ url_for('facturacion_dashboard') }}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label small fw-medium">Tipo</label>
+                    <select class="form-select" name="tipo">
+                        <option value="">Todos</option>
+                        <option value="recibido" {{ 'selected' if filtro_tipo == 'recibido' }}>Recibidos</option>
+                        <option value="emitido" {{ 'selected' if filtro_tipo == 'emitido' }}>Emitidos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-medium">Comprobante</label>
+                    <select class="form-select" name="comprobante">
+                        <option value="">Todos</option>
+                        <option value="I" {{ 'selected' if filtro_comprobante == 'I' }}>Ingreso</option>
+                        <option value="E" {{ 'selected' if filtro_comprobante == 'E' }}>Egreso</option>
+                        <option value="P" {{ 'selected' if filtro_comprobante == 'P' }}>Pago</option>
+                        <option value="N" {{ 'selected' if filtro_comprobante == 'N' }}>Nómina</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-medium">Estado SAT</label>
+                    <select class="form-select" name="estado_sat">
+                        <option value="">Todos</option>
+                        <option value="vigente" {{ 'selected' if filtro_estado == 'vigente' }}>Vigente</option>
+                        <option value="cancelado" {{ 'selected' if filtro_estado == 'cancelado' }}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-medium">Desde</label>
+                    <input type="date" class="form-control" name="desde" value="{{ filtro_desde or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-medium">Hasta</label>
+                    <input type="date" class="form-control" name="hasta" value="{{ filtro_hasta or '' }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a href="{{ url_for('cfdi_listado') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h4 class="fw-bold text-primary mb-0">{{ resumen.total_cfdi }}</h4>
+                    <small class="text-muted">Total CFDI</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h4 class="fw-bold text-info mb-0">{{ resumen.recibidos }}</h4>
+                    <small class="text-muted">Recibidos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h4 class="fw-bold text-success mb-0">{{ resumen.emitidos }}</h4>
+                    <small class="text-muted">Emitidos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h4 class="fw-bold text-warning mb-0">{{ resumen.sin_conciliar }}</h4>
+                    <small class="text-muted">Sin Conciliar</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de CFDI -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Listado de CFDI</h5>
+                <span class="badge bg-primary rounded-pill">{{ cfdis|length }} registros</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if cfdis %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="px-4 py-3">UUID</th>
+                            <th class="px-4 py-3">Tipo</th>
+                            <th class="px-4 py-3">Emisor / Receptor</th>
+                            <th class="px-4 py-3">Fecha</th>
+                            <th class="px-4 py-3 text-end">Total</th>
+                            <th class="px-4 py-3 text-center">Estado</th>
+                            <th class="px-4 py-3 text-center">Conciliado</th>
+                            <th class="px-4 py-3 text-center" style="width: 120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in cfdis %}
+                        <tr>
+                            <td class="px-4">
+                                <small class="font-monospace text-muted" title="{{ c.uuid }}">
+                                    {{ c.uuid[:8] }}...{{ c.uuid[-4:] }}
+                                </small>
+                            </td>
+                            <td class="px-4">
+                                {% if c.es_emitido %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-arrow-up me-1"></i>Emitido
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-arrow-down me-1"></i>Recibido
+                                </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    {% if c.tipo_comprobante == 'I' %}Ingreso
+                                    {% elif c.tipo_comprobante == 'E' %}Egreso
+                                    {% elif c.tipo_comprobante == 'P' %}Pago
+                                    {% elif c.tipo_comprobante == 'N' %}Nómina
+                                    {% elif c.tipo_comprobante == 'T' %}Traslado
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td class="px-4">
+                                {% if c.es_emitido %}
+                                <small class="text-muted">Para:</small><br>
+                                <span class="fw-medium">{{ c.nombre_receptor or c.rfc_receptor }}</span>
+                                {% else %}
+                                <small class="text-muted">De:</small><br>
+                                <span class="fw-medium">{{ c.nombre_emisor or c.rfc_emisor }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4">
+                                <span>{{ c.fecha_fmt }}</span>
+                            </td>
+                            <td class="px-4 text-end">
+                                <span class="fw-bold {% if c.es_emitido %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "{:,.2f}".format(c.total) }}
+                                </span>
+                            </td>
+                            <td class="px-4 text-center">
+                                {% if c.estado_sat == 'vigente' %}
+                                <span class="badge bg-success">Vigente</span>
+                                {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 text-center">
+                                {% if c.conciliado %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Sí
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock"></i> No
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('cfdi_ver', id=c.id) }}" 
+                                       class="btn btn-outline-primary" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if not c.conciliado %}
+                                    <button type="button" class="btn btn-outline-success" 
+                                            onclick="conciliar({{ c.id }})" title="Conciliar">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-file-code fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay CFDI importados</h5>
+                <p class="text-muted mb-4">Importa tus primeros archivos XML del SAT</p>
+                <a href="{{ url_for('cfdi_importar') }}" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>Importar XML
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Conciliar -->
+<div class="modal fade" id="modalConciliar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-link me-2"></i>Conciliar CFDI</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formConciliar">
+                <div class="modal-body">
+                    <p>Vincula este CFDI con una compra o venta registrada:</p>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Documento</label>
+                        <select class="form-select" name="tipo_documento" id="tipoDocumento" onchange="cargarDocumentos()">
+                            <option value="">Seleccionar...</option>
+                            <option value="compra">Compra</option>
+                            <option value="venta">Venta</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Documento</label>
+                        <select class="form-select" name="documento_id" id="selectDocumento" disabled>
+                            <option value="">Primero selecciona el tipo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Conciliar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function conciliar(id) {
+    document.getElementById('formConciliar').action = '/cfdi/' + id + '/conciliar';
+    document.getElementById('tipoDocumento').value = '';
+    document.getElementById('selectDocumento').innerHTML = '<option value="">Primero selecciona el tipo</option>';
+    document.getElementById('selectDocumento').disabled = true;
+    new bootstrap.Modal(document.getElementById('modalConciliar')).show();
+}
+
+function cargarDocumentos() {
+    const tipo = document.getElementById('tipoDocumento').value;
+    const select = document.getElementById('selectDocumento');
+    
+    if (!tipo) {
+        select.innerHTML = '<option value="">Primero selecciona el tipo</option>';
+        select.disabled = true;
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Cargando...</option>';
+    select.disabled = true;
+    
+    fetch('/api/documentos-sin-cfdi?tipo=' + tipo)
+        .then(r => r.json())
+        .then(data => {
+            if (data.length === 0) {
+                select.innerHTML = '<option value="">No hay documentos disponibles</option>';
+            } else {
+                select.innerHTML = '<option value="">Seleccionar...</option>' + 
+                    data.map(d => `<option value="${d.id}">${d.folio} - ${d.proveedor || d.cliente} - $${d.total}</option>`).join('');
+                select.disabled = false;
+            }
+        })
+        .catch(err => {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            console.error(err);
+        });
+}
+</script>
+{% endblock %}

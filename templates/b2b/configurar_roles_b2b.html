@@ -1,0 +1,134 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Configurar Roles B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-user-tag text-primary"></i> Roles B2B
+            </h1>
+            <p class="text-muted mb-0">Asigna roles para el flujo de facturación entre empresas</p>
+        </div>
+        <a href="{{ url_for('relaciones_b2b') }}" class="btn btn-outline-primary">
+            <i class="fas fa-handshake"></i> Relaciones Comerciales
+        </a>
+    </div>
+
+    <!-- Leyenda de Roles -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-info-circle"></i> Descripción de Roles</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-primary me-2">Supervisor</span>
+                    <small class="text-muted">Aprueba órdenes de compra</small>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-success me-2">Ventas</span>
+                    <small class="text-muted">Recibe y procesa pedidos</small>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-info me-2">CxC</span>
+                    <small class="text-muted">Cuentas por Cobrar - Emite facturas</small>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-warning text-dark me-2">CxP</span>
+                    <small class="text-muted">Cuentas por Pagar - Programa pagos</small>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-secondary me-2">Almacén</span>
+                    <small class="text-muted">Prepara y recibe mercancía</small>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <span class="badge bg-dark me-2">Reparto</span>
+                    <small class="text-muted">Entrega mercancía</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-users"></i> Usuarios y Roles</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th class="text-center">Supervisor</th>
+                            <th class="text-center">Ventas</th>
+                            <th class="text-center">CxC</th>
+                            <th class="text-center">CxP</th>
+                            <th class="text-center">Almacén</th>
+                            <th class="text-center">Reparto</th>
+                            <th>WhatsApp</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <form method="POST" id="form-{{ u.id }}">
+                                <input type="hidden" name="usuario_id" value="{{ u.id }}">
+                                <td>
+                                    <strong>{{ u.nombre }}</strong>
+                                    <br><small class="text-muted">{{ u.email }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_supervisor" class="form-check-input" 
+                                           {{ 'checked' if u.es_supervisor else '' }}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_ventas" class="form-check-input"
+                                           {{ 'checked' if u.es_ventas else '' }}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_cxc" class="form-check-input"
+                                           {{ 'checked' if u.es_cxc else '' }}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_cxp" class="form-check-input"
+                                           {{ 'checked' if u.es_cxp else '' }}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_almacen" class="form-check-input"
+                                           {{ 'checked' if u.es_almacen else '' }}>
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" name="es_reparto" class="form-check-input"
+                                           {{ 'checked' if u.es_reparto else '' }}>
+                                </td>
+                                <td>
+                                    <input type="text" name="telefono_whatsapp" class="form-control form-control-sm"
+                                           placeholder="+52 123 456 7890" style="width: 150px;"
+                                           value="{{ u.telefono_whatsapp or '' }}">
+                                </td>
+                                <td>
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                No hay usuarios registrados
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

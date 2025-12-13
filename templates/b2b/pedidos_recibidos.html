@@ -1,0 +1,106 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Pedidos Recibidos B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-clipboard-list text-success"></i> Pedidos Recibidos
+            </h1>
+            <p class="text-muted mb-0">Órdenes de compra de nuestros clientes</p>
+        </div>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('pedidos_recibidos_b2b') }}" class="btn btn-sm btn-outline-secondary">
+                    Todos
+                </a>
+                <a href="{{ url_for('pedidos_recibidos_b2b') }}?estado=enviada" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-exclamation-circle"></i> Pendientes
+                </a>
+                <a href="{{ url_for('pedidos_recibidos_b2b') }}?estado=recibida" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-file-invoice"></i> Por Facturar
+                </a>
+                <a href="{{ url_for('pedidos_recibidos_b2b') }}?estado=facturada" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-check"></i> Facturados
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de pedidos -->
+    <div class="card">
+        <div class="card-body">
+            {% if pedidos %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Folio</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pedidos %}
+                        <tr class="{% if p.estado == 'enviada' %}table-warning{% endif %}">
+                            <td>
+                                <a href="{{ url_for('ver_orden_compra_b2b', orden_id=p.id) }}" class="fw-bold text-decoration-none">
+                                    {{ p.folio }}
+                                </a>
+                            </td>
+                            <td>{{ p.fecha_solicitud.strftime('%d/%m/%Y %H:%M') if p.fecha_solicitud else '-' }}</td>
+                            <td>{{ p.cliente_nombre }}</td>
+                            <td class="fw-bold">${{ '{:,.2f}'.format(p.total or 0) }}</td>
+                            <td>
+                                {% if p.estado == 'enviada' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> Nuevo</span>
+                                {% elif p.estado == 'recibida' %}
+                                <span class="badge bg-info"><i class="fas fa-file-invoice"></i> Por Facturar</span>
+                                {% elif p.estado == 'facturada' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Facturado</span>
+                                {% elif p.estado == 'cancelada' %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i> Cancelado</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ p.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('ver_orden_compra_b2b', orden_id=p.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                                {% if p.estado == 'enviada' %}
+                                <form action="{{ url_for('procesar_pedido_b2b', orden_id=p.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" 
+                                            onclick="return confirm('¿Procesar este pedido?')">
+                                        <i class="fas fa-check"></i> Procesar
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay pedidos</h4>
+                <p class="text-muted">Cuando tus clientes envíen órdenes de compra, aparecerán aquí.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

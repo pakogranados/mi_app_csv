@@ -1,0 +1,392 @@
+{% extends "sidebar.html" %}
+{% block title %}Editar Paso: {{ paso.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="mb-1">
+        <i class="fas fa-edit text-warning"></i> 
+        Editar Paso: {{ paso.nombre }}
+      </h3>
+      <small class="text-muted">Proceso: {{ proceso.nombre }}</small>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('wip.pasos', proceso_id=proceso.id) }}">
+      <i class="fas fa-arrow-left"></i> Cancelar
+    </a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Formulario de edición -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-warning text-dark">
+      <h5 class="mb-0">
+        <i class="fas fa-edit"></i> Modificar Información del Paso
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="post" id="formEditarPaso">
+        <input type="hidden" name="materiales_json" id="materialesJson" value="[]">
+        
+        <div class="row g-3">
+          <!-- Nombre del paso -->
+          <div class="col-md-12">
+            <label class="form-label fw-bold">Nombre del paso *</label>
+            <input type="text" class="form-control" name="nombre" 
+                   value="{{ paso.nombre }}" required>
+          </div>
+
+          <!-- Área y Responsable -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Área *</label>
+            <select class="form-select" name="area_id" required>
+              <option value="">-- Seleccionar --</option>
+              {% for a in areas %}
+                <option value="{{ a.id }}" {% if a.id == paso.area_id %}selected{% endif %}>
+                  {{ a.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              Responsable
+              <span class="badge bg-info ms-1" id="badgePuesto"></span>
+            </label>
+            <input class="form-control" name="responsable" id="inputResponsable" 
+                   value="{{ paso.responsable or '' }}" readonly>
+            <small class="text-muted" id="infoResponsable"></small>
+          </div>
+
+          <!-- Descripción -->
+          <div class="col-12">
+            <label class="form-label fw-bold">Descripción del proceso *</label>
+            <textarea class="form-control" name="descripcion" rows="4" required>{{ paso.descripcion or '' }}</textarea>
+          </div>
+
+          <!-- Materiales -->
+          <div class="col-12">
+            <hr class="my-4">
+            <h5 class="mb-3">
+              <i class="fas fa-boxes text-warning"></i> 
+              Materiales del paso
+            </h5>
+            
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle" id="tablaMateriales">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 50%">Material</th>
+                    <th class="text-center" style="width: 20%">Cantidad</th>
+                    <th class="text-center" style="width: 20%">Unidad</th>
+                    <th class="text-center" style="width: 10%">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMateriales">
+                  <!-- Se llena con JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnAgregarMaterial">
+              <i class="fas fa-plus"></i> Agregar material
+            </button>
+          </div>
+
+          <!-- Tiempo y Validación -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              <i class="fas fa-clock text-info"></i> 
+              Tiempo estimado (minutos)
+            </label>
+            <input type="number" class="form-control" name="minutos_estimados" 
+                   value="{{ paso.minutos_estimados or '' }}" min="0">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Requiere validación</label>
+            <select class="form-select" name="requiere_validez">
+              <option value="1" {% if paso.requiere_validez %}selected{% endif %}>Sí</option>
+              <option value="0" {% if not paso.requiere_validez %}selected{% endif %}>No</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="mt-4">
+          <button type="submit" class="btn btn-success btn-lg">
+            <i class="fas fa-save"></i> Guardar Cambios
+          </button>
+          <a href="{{ url_for('wip.pasos', proceso_id=proceso.id) }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i> Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agregar material -->
+<div class="modal fade" id="modalAgregarMaterial" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Material</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Materia Prima *</label>
+          <select class="form-select" id="modalMpSelect">
+            <option value="">-- Seleccionar --</option>
+            {% for mp in mps %}
+              <option value="{{ mp.id }}" data-nombre="{{ mp.nombre }}">{{ mp.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      
+        <!-- Info de la MP -->
+        <div id="infoMP" class="alert alert-info d-none">
+            <small>
+            <strong>Producto:</strong> <span id="infoNombre"></span><br>
+            <strong>Unidad base:</strong> <span id="infoUnidad"></span><br>
+            <strong>Precio por unidad:</strong> $<span id="infoPrecio"></span> / <span id="infoPrecioUnidad"></span><br>
+            <span id="infoEjemplo" class="text-muted"></span>
+            </small>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Cantidad *</label>
+            <input type="number" class="form-control" id="modalCantidad" step="any" min="0" value="1">
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Unidad (auto-detectada)</label>
+            <input type="text" class="form-control" id="modalUnidad" value="" readonly>
+        </div>
+        
+        <div class="alert alert-success d-none" id="costoPrevio">
+            <strong>Costo estimado:</strong> $<span id="costoEstimado">0.00</span>
+        </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let materialesDetectados = [
+  {% for mat in materiales_actuales %}
+  {
+    mercancia_id: {{ mat.mercancia_id }},
+    nombre: "{{ mat.mp_nombre }}",
+    nombre_detectado: "{{ mat.mp_nombre }}",
+    cantidad: {{ mat.cantidad_por_lote }},
+    unidad: "gramos",
+    confianza: "existente",
+    encontrado: true
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+function mostrarMateriales(materiales) {
+  const tbody = document.getElementById('tbodyMateriales');
+  tbody.innerHTML = '';
+  
+  materiales.forEach((mat, index) => {
+    const row = `
+      <tr>
+        <td>${mat.nombre}</td>
+        <td class="text-center">
+          <input type="number" class="form-control form-control-sm text-center" 
+                 value="${mat.cantidad}" step="any" min="0"
+                 onchange="actualizarCantidad(${index}, this.value)">
+        </td>
+        <td class="text-center">
+          <input type="text" class="form-control form-control-sm text-center" 
+                 value="${mat.unidad}" 
+                 onchange="actualizarUnidad(${index}, this.value)">
+        </td>
+        <td class="text-center">
+          <button type="button" class="btn btn-sm btn-outline-danger" 
+                  onclick="eliminarMaterial(${index})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', row);
+  });
+  
+  actualizarJSON();
+}
+
+function actualizarCantidad(index, valor) {
+  materialesDetectados[index].cantidad = parseFloat(valor) || 0;
+  actualizarJSON();
+}
+
+function actualizarUnidad(index, valor) {
+  materialesDetectados[index].unidad = valor;
+  actualizarJSON();
+}
+
+function eliminarMaterial(index) {
+  materialesDetectados.splice(index, 1);
+  mostrarMateriales(materialesDetectados);
+}
+
+function actualizarJSON() {
+  document.getElementById('materialesJson').value = JSON.stringify(materialesDetectados);
+}
+
+// Cargar materiales al iniciar
+mostrarMateriales(materialesDetectados);
+
+// Agregar material
+document.getElementById('btnAgregarMaterial').addEventListener('click', function() {
+    const modal = new bootstrap.Modal(document.getElementById('modalAgregarMaterial'));
+    modal.show();
+});
+
+document.getElementById('btnConfirmarAgregar').addEventListener('click', function() {
+    const select = document.getElementById('modalMpSelect');
+    const mpId = select.value;
+    const mpNombre = select.options[select.selectedIndex]?.dataset.nombre || '';
+    const cantidad = parseFloat(document.getElementById('modalCantidad').value);
+    const unidad = document.getElementById('modalUnidad').value.trim();
+    
+    if (!mpId) {
+        alert('Selecciona una materia prima');
+        return;
+    }
+    
+    if (isNaN(cantidad) || cantidad <= 0) {
+        alert('Cantidad inválida');
+        return;
+    }
+    
+    const existe = materialesDetectados.find(m => m.mercancia_id == mpId);
+    if (existe) {
+        alert('Este material ya está agregado');
+        return;
+    }
+    
+    materialesDetectados.push({
+        mercancia_id: parseInt(mpId),
+        nombre: mpNombre,
+        nombre_detectado: mpNombre,
+        cantidad: cantidad,
+        unidad: unidad,
+        confianza: 'manual',
+        encontrado: true
+    });
+    
+    mostrarMateriales(materialesDetectados);
+    
+    bootstrap.Modal.getInstance(document.getElementById('modalAgregarMaterial')).hide();
+    document.getElementById('modalMpSelect').value = '';
+    document.getElementById('modalCantidad').value = '1';
+    document.getElementById('modalUnidad').value = 'gramos';
+});
+
+// ============ CARGAR INFO DE MP AL SELECCIONAR ============
+document.getElementById('modalMpSelect').addEventListener('change', async function() {
+    const mpId = this.value;
+    const infoDiv = document.getElementById('infoMP');
+    const costoPrevioDiv = document.getElementById('costoPrevio');
+    
+    if (!mpId) {
+        infoDiv.classList.add('d-none');
+        costoPrevioDiv.classList.add('d-none');
+        document.getElementById('modalUnidad').value = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/wip/mercancia/${mpId}/info`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const mp = data.mercancia;
+            
+            // Mostrar info
+            document.getElementById('infoNombre').textContent = mp.nombre;
+            document.getElementById('infoUnidad').textContent = mp.unidad_base;
+            document.getElementById('infoPrecio').textContent = mp.precio_por_unidad_base.toFixed(4);
+            document.getElementById('infoPrecioUnidad').textContent = mp.unidad_base;
+            document.getElementById('infoEjemplo').textContent = mp.ejemplo_calculo;
+            infoDiv.classList.remove('d-none');
+            
+            // Auto-completar unidad
+            document.getElementById('modalUnidad').value = mp.unidad_base;
+            
+            // Guardar precio para cálculo
+            document.getElementById('modalCantidad').dataset.precioUnitario = mp.precio_por_unidad_base;
+            
+            // Calcular costo al cambiar cantidad
+            calcularCosto();
+        }
+    } catch (error) {
+        console.error('Error al cargar info:', error);
+        alert('Error al cargar información del material');
+    }
+});
+
+// Calcular costo en tiempo real
+document.getElementById('modalCantidad').addEventListener('input', calcularCosto);
+
+function calcularCosto() {
+    const cantidad = parseFloat(document.getElementById('modalCantidad').value) || 0;
+    const precioUnitario = parseFloat(document.getElementById('modalCantidad').dataset.precioUnitario) || 0;
+    const costo = cantidad * precioUnitario;
+    
+    if (cantidad > 0 && precioUnitario > 0) {
+        document.getElementById('costoEstimado').textContent = costo.toFixed(2);
+        document.getElementById('costoPrevio').classList.remove('d-none');
+    } else {
+        document.getElementById('costoPrevio').classList.add('d-none');
+    }
+}
+
+// Cargar responsable al cambiar área
+document.querySelector('select[name="area_id"]').addEventListener('change', async function() {
+    const areaId = this.value;
+    const inputResponsable = document.getElementById('inputResponsable');
+    const badgePuesto = document.getElementById('badgePuesto');
+    const infoResponsable = document.getElementById('infoResponsable');
+    
+    inputResponsable.value = '';
+    badgePuesto.textContent = '';
+    infoResponsable.textContent = '';
+    
+    if (!areaId) return;
+    
+    try {
+        const response = await fetch(`/wip/areas/${areaId}/responsable`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const resp = data.responsable;
+            inputResponsable.value = resp.nombre;
+            badgePuesto.textContent = resp.puesto;
+            infoResponsable.textContent = `📧 ${resp.correo}`;
+            infoResponsable.className = 'text-success';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
+</script>
+{% endblock %}

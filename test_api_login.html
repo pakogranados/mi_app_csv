@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Prueba API Login ERP</title>
+</head>
+<body>
+  <h2>Prueba /api/login (ERP)</h2>
+
+  <label>
+    Usuario:
+    <input type="text" id="usuario" value="admin">
+  </label>
+  <br><br>
+  <label>
+    Password:
+    <input type="password" id="password" value="1234">
+  </label>
+  <br><br>
+  <button id="btnProbar">Probar login API</button>
+
+  <h3>Respuesta de la API:</h3>
+  <pre id="respuesta" style="background:#f4f4f4;padding:10px;border:1px solid #ccc;max-width:700px;white-space:pre-wrap;"></pre>
+
+  <script>
+    document.getElementById('btnProbar').addEventListener('click', async () => {
+      const usuario  = document.getElementById('usuario').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const salida   = document.getElementById('respuesta');
+      salida.textContent = 'Enviando petición...';
+
+      try {
+        const resp = await fetch('http://127.0.0.1:5000/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ usuario, password })
+        });
+
+        const text = await resp.text(); // leemos como texto por si hay error HTML
+        try {
+          const json = JSON.parse(text);
+          salida.textContent = JSON.stringify(json, null, 2);
+        } catch (e) {
+          salida.textContent = 'Respuesta no JSON:\n\n' + text;
+        }
+      } catch (err) {
+        salida.textContent = 'Error llamando a la API:\n\n' + err;
+      }
+    });
+  </script>
+</body>
+</html>

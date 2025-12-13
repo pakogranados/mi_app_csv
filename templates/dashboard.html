@@ -1,0 +1,212 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Dashboard - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 mb-1 fw-bold">📊 Dashboard</h1>
+      <p class="text-muted small mb-0">
+        Bienvenido, {{ session.get('username', 'Usuario') }} | {{ empresa_nombre }}
+      </p>
+    </div>
+    <div class="text-end">
+      <p class="mb-0 small fw-medium">{{ fecha_actual }}</p>
+      <p class="mb-0 text-muted" style="font-size: 0.75rem;">{{ hora_actual }}</p>
+    </div>
+  </div>
+
+  <!-- KPIs Grid -->
+  <div class="row g-4 mb-4">
+    <!-- Inventario MP -->
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h6 class="card-subtitle mb-0 opacity-75">Inventario MP</h6>
+            <i class="fas fa-boxes fa-2x opacity-50"></i>
+          </div>
+          <h2 class="display-4 fw-bold mb-2">{{ metricas.inventario_mp.total_items }}</h2>
+          <p class="mb-3 opacity-75">{{ "{:,.0f}".format(metricas.inventario_mp.stock) }} unidades</p>
+          <a href="/inventarios/materias_primas" class="text-white text-decoration-none small opacity-75 hover-opacity-100">
+            Ver inventario <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Producción WIP -->
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h6 class="card-subtitle mb-0 opacity-75">En Producción</h6>
+            <i class="fas fa-industry fa-2x opacity-50"></i>
+          </div>
+          <h2 class="display-4 fw-bold mb-2">{{ metricas.wip.ordenes }}</h2>
+          <p class="mb-3 opacity-75">{{ "{:,.0f}".format(metricas.wip.unidades) }} unidades</p>
+          <a href="/production" class="text-white text-decoration-none small opacity-75 hover-opacity-100">
+            Ver órdenes <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PT Disponibles -->
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h6 class="card-subtitle mb-0 opacity-75">PT Disponibles</h6>
+            <i class="fas fa-box-open fa-2x opacity-50"></i>
+          </div>
+          <h2 class="display-4 fw-bold mb-2">{{ metricas.pt.total_items }}</h2>
+          <p class="mb-3 opacity-75">productos registrados</p>
+          <a href="/pt/catalogo" class="text-white text-decoration-none small opacity-75 hover-opacity-100">
+            Ver catálogo <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ventas Hoy -->
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h6 class="card-subtitle mb-0 opacity-75">Ventas Hoy</h6>
+            <i class="fas fa-cash-register fa-2x opacity-50"></i>
+          </div>
+          <h2 class="display-4 fw-bold mb-2">${{ "{:,.2f}".format(metricas.ventas.hoy) }}</h2>
+          <p class="mb-3 opacity-75">{{ metricas.ventas.tickets }} tickets • Prom: ${{ "{:,.2f}".format(metricas.ventas.promedio) }}</p>
+          <a href="/caja" class="text-white text-decoration-none small opacity-75 hover-opacity-100">
+            Ir a caja <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="row g-4 mb-4">
+    <!-- Últimas Compras -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">📦 Últimas Compras</h5>
+            <a href="/listado_compras" class="btn btn-sm btn-link text-decoration-none">Ver todas <i class="fas fa-arrow-right ms-1"></i></a>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if compras_recientes %}
+            <div class="list-group list-group-flush">
+              {% for c in compras_recientes %}
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-semibold">{{ c.proveedor }}</h6>
+                    <small class="text-muted">{{ c.fecha_fmt }} • {{ c.numero_factura }}</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">${{ "{:,.2f}".format(c.total) }}</span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+              <p class="text-muted mb-2">No hay compras recientes</p>
+              <a href="/nueva_compra" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Registrar primera compra
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Órdenes de Producción -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">⚙️ Órdenes Activas</h5>
+            <a href="/production" class="btn btn-sm btn-link text-decoration-none">Ver todas <i class="fas fa-arrow-right ms-1"></i></a>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if ordenes_produccion %}
+            <div class="list-group list-group-flush">
+              {% for op in ordenes_produccion %}
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-semibold">{{ op.producto }}</h6>
+                    <small class="text-muted">{{ op.fecha_fmt }} • {{ "{:,.0f}".format(op.cantidad_programada) }} uds</small>
+                  </div>
+                  <span class="badge {% if op.estado == 'abierta' %}bg-info{% else %}bg-success{% endif %} rounded-pill">
+                    {{ op.estado }}
+                  </span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+              <p class="text-muted mb-2">No hay órdenes activas</p>
+              <a href="/production/new" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Crear primera orden
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acciones Rápidas -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <h5 class="mb-0 fw-bold">🚀 Accesos Rápidos</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <a href="/nueva_compra" class="btn btn-outline-primary w-100 py-3 text-decoration-none">
+            <i class="fas fa-shopping-cart fa-2x mb-2 d-block"></i>
+            <span class="small fw-semibold">Nueva Compra</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="/production/new" class="btn btn-outline-success w-100 py-3 text-decoration-none">
+            <i class="fas fa-plus-circle fa-2x mb-2 d-block"></i>
+            <span class="small fw-semibold">Nueva Orden</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="/caja" class="btn btn-outline-warning w-100 py-3 text-decoration-none">
+            <i class="fas fa-cash-register fa-2x mb-2 d-block"></i>
+            <span class="small fw-semibold">Punto de Venta</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="/pt/catalogo" class="btn btn-outline-info w-100 py-3 text-decoration-none">
+            <i class="fas fa-box fa-2x mb-2 d-block"></i>
+            <span class="small fw-semibold">Catálogo PT</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .hover-opacity-100:hover { opacity: 1 !important; }
+  .card { transition: transform 0.2s, box-shadow 0.2s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
+</style>
+{% endblock %}

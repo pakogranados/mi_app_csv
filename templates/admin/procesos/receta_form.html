@@ -1,0 +1,23 @@
+{% extends "sidebar.html" %}{% block content %}
+<h5>Receta etapa {{ etapa.orden }} · {{ etapa.nombre }} · {{ etapa.proceso }}</h5>
+<form method="post" class="row g-2 mb-3">
+  <div class="col-md-5">
+    <select name="mercancia_id" class="form-select" required>
+      <option value="">Mercancía</option>
+      {% for m in mercancias %}<option value="{{ m.id }}">{{ m.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2"><input name="unidad" class="form-control" placeholder="UDM"></div>
+  <div class="col-md-2"><input type="number" step="0.0001" min="0" name="cantidad" class="form-control" placeholder="Cantidad" required></div>
+  <div class="col-md-2"><input type="number" step="0.01" min="0" name="merma_pct" class="form-control" placeholder="% merma"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100">+</button></div>
+</form>
+<table class="table table-sm">
+  <thead><tr><th>Mercancía</th><th>UDM</th><th>Cantidad</th><th>% merma</th></tr></thead>
+  <tbody>
+    {% for i in items %}
+    <tr><td>{{ i.mercancia }}</td><td>{{ i.unidad }}</td><td>{{ i.cantidad }}</td><td>{{ i.merma_pct }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

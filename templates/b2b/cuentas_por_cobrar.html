@@ -1,0 +1,131 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Cuentas por Cobrar - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-hand-holding-usd text-success"></i> Cuentas por Cobrar
+            </h1>
+            <p class="text-muted mb-0">Cartera de clientes B2B</p>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Total por Cobrar</h6>
+                            <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_saldo or 0) }}</h3>
+                        </div>
+                        <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Vencido</h6>
+                            <h3 class="mb-0">${{ '{:,.2f}'.format(totales.vencido or 0) }}</h3>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Al Corriente</h6>
+                            <h3 class="mb-0">${{ '{:,.2f}'.format((totales.total_saldo or 0) - (totales.vencido or 0)) }}</h3>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+        <div class="card-body">
+            {% if cuentas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Factura</th>
+                            <th>Emisión</th>
+                            <th>Vencimiento</th>
+                            <th class="text-end">Monto</th>
+                            <th class="text-end">Pagado</th>
+                            <th class="text-end">Saldo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in cuentas %}
+                        <tr class="{% if c.fecha_vencimiento and c.fecha_vencimiento < now().date() and c.estado == 'pendiente' %}table-danger{% endif %}">
+                            <td>{{ c.cliente_nombre }}</td>
+                            <td>
+                                {% if c.factura_b2b_id %}
+                                <a href="{{ url_for('ver_factura_b2b', factura_id=c.factura_b2b_id) }}">
+                                    Ver Factura
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ c.fecha_emision.strftime('%d/%m/%Y') if c.fecha_emision else '-' }}</td>
+                            <td>
+                                {% if c.fecha_vencimiento %}
+                                    {% if c.fecha_vencimiento < now().date() and c.estado == 'pendiente' %}
+                                    <span class="text-danger fw-bold">{{ c.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+                                    {% else %}
+                                    {{ c.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                    {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">${{ '{:,.2f}'.format(c.monto_original or 0) }}</td>
+                            <td class="text-end text-success">${{ '{:,.2f}'.format(c.monto_pagado or 0) }}</td>
+                            <td class="text-end fw-bold">${{ '{:,.2f}'.format(c.saldo or 0) }}</td>
+                            <td>
+                                {% if c.estado == 'pendiente' %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif c.estado == 'parcial' %}
+                                <span class="badge bg-info">Parcial</span>
+                                {% elif c.estado == 'pagada' %}
+                                <span class="badge bg-success">Pagada</span>
+                                {% elif c.estado == 'vencida' %}
+                                <span class="badge bg-danger">Vencida</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4 class="text-muted">Sin cuentas por cobrar</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Verificar {{ factura.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-clipboard-check text-success"></i> Verificar Recepción
+            </h1>
+            <p class="text-muted mb-0">{{ factura.folio }} - {{ factura.proveedor_nombre }}</p>
+        </div>
+        <a href="{{ url_for('recepcion_mercancia_b2b') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Checklist -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-list-check"></i> Verificar Artículos Recibidos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;"></th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Facturado</th>
+                                    <th class="text-center">Recibido</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in detalle %}
+                                <tr class="{% if d.verificado %}{% if d.tiene_diferencia %}table-danger{% else %}table-success{% endif %}{% endif %}">
+                                    <td class="text-center">
+                                        {% if d.verificado %}
+                                            {% if d.tiene_diferencia %}
+                                            <i class="fas fa-exclamation-triangle text-danger fa-2x"></i>
+                                            {% else %}
+                                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                                            {% endif %}
+                                        {% else %}
+                                        <i class="far fa-circle text-secondary fa-2x"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ d.descripcion }}</strong>
+                                        {% if d.verificado and d.tiene_diferencia %}
+                                        <br><small class="text-danger">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            {{ d.tipo_diferencia }}: {{ d.notas }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">{{ d.cantidad_facturada }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if d.verificado %}
+                                        <span class="badge {% if d.cantidad_verificada != d.cantidad_facturada %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6">
+                                            {{ d.cantidad_verificada }}
+                                        </span>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not d.verificado %}
+                                        <button type="button" class="btn btn-success btn-sm" 
+                                                data-bs-toggle="modal" data-bs-target="#modalVerificar{{ d.checklist_id }}">
+                                            <i class="fas fa-check"></i> Verificar
+                                        </button>
+                                        
+                                        <!-- Modal -->
+                                        <div class="modal fade" id="modalVerificar{{ d.checklist_id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-success text-white">
+                                                        <h5 class="modal-title">Verificar: {{ d.descripcion }}</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="POST">
+                                                        <div class="modal-body">
+                                                            <input type="hidden" name="accion" value="verificar_item">
+                                                            <input type="hidden" name="checklist_id" value="{{ d.checklist_id }}">
+                                                            
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Cantidad Facturada</label>
+                                                                <input type="text" class="form-control" value="{{ d.cantidad_facturada }}" disabled>
+                                                            </div>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Cantidad Recibida *</label>
+                                                                <input type="number" name="cantidad" class="form-control" 
+                                                                       step="0.01" value="{{ d.cantidad_facturada }}" required>
+                                                            </div>
+                                                            
+                                                            <div class="mb-3">
+                                                                <div class="form-check">
+                                                                    <input type="checkbox" class="form-check-input" name="tiene_diferencia" 
+                                                                           value="1" id="diferencia{{ d.checklist_id }}"
+                                                                           onchange="toggleDiferencia({{ d.checklist_id }})">
+                                                                    <label class="form-check-label" for="diferencia{{ d.checklist_id }}">
+                                                                        Reportar diferencia
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div id="detalleDiferencia{{ d.checklist_id }}" style="display: none;">
+                                                                <div class="mb-3">
+                                                                    <label class="form-label">Tipo de Diferencia</label>
+                                                                    <select name="tipo_diferencia" class="form-select">
+                                                                        <option value="faltante">Faltante</option>
+                                                                        <option value="sobrante">Sobrante</option>
+                                                                        <option value="dañado">Dañado</option>
+                                                                        <option value="otro">Otro</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label">Descripción</label>
+                                                                    <textarea name="notas" class="form-control" rows="2"></textarea>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-success">
+                                                                <i class="fas fa-check"></i> Confirmar
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="badge {% if d.tiene_diferencia %}bg-danger{% else %}bg-success{% endif %}">
+                                            {% if d.tiene_diferencia %}Con diferencia{% else %}OK{% endif %}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Info -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td class="text-muted">Factura:</td>
+                            <td class="fw-bold">{{ factura.folio }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Proveedor:</td>
+                            <td>{{ factura.proveedor_nombre }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Total:</td>
+                            <td class="fw-bold text-success">${{ '{:,.2f}'.format(factura.total or 0) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Vencimiento:</td>
+                            <td>{{ factura.fecha_vencimiento.strftime('%d/%m/%Y') if factura.fecha_vencimiento else 'Contado' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Progreso -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progreso</h5>
+                </div>
+                <div class="card-body">
+                    {% set listos = detalle|selectattr('verificado')|list|length %}
+                    {% set total = detalle|length %}
+                    {% set diferencias = detalle|selectattr('tiene_diferencia')|list|length %}
+                    {% set pct = (listos / total * 100) if total > 0 else 0 %}
+                    
+                    <div class="text-center mb-3">
+                        <h2 class="mb-0">{{ listos }} / {{ total }}</h2>
+                        <small class="text-muted">artículos verificados</small>
+                    </div>
+                    
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success" style="width: {{ pct }}%">
+                            {{ pct|int }}%
+                        </div>
+                    </div>
+                    
+                    {% if diferencias > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ diferencias }} artículo(s) con diferencias
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Completar -->
+            {% if listos == total and total > 0 %}
+            <div class="card border-success">
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="accion" value="confirmar_recepcion">
+                        <button type="submit" class="btn btn-success btn-lg w-100" 
+                                onclick="return confirm('¿Confirmar recepción de mercancía?')">
+                            <i class="fas fa-check-double"></i> Confirmar Recepción
+                        </button>
+                    </form>
+                    <small class="text-muted d-block mt-2 text-center">
+                        Se registrará en Cuentas por Pagar
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDiferencia(id) {
+    const checkbox = document.getElementById('diferencia' + id);
+    const detalle = document.getElementById('detalleDiferencia' + id);
+    detalle.style.display = checkbox.checked ? 'block' : 'none';
+}
+</script>
+{% endblock %}

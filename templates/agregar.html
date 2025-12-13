@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Agregar Producto</title>
+</head>
+
+<body>
+    <h2 style="text-align:center">Agregar Producto al Inventario</h2>
+    <form method="POST" action="" style="width: 300px; margin: auto;">
+        <p>
+            <label>Producto:</label><br>
+            <input type="text" name="producto" required>
+        </p>
+        <p>
+            <label>Inventario Inicial:</label><br>
+            <input type="number" name="inicial" value="0" min="0" required>
+        </p>
+        <p>
+            <label>Entradas:</label><br>
+            <input type="number" name="entradas" value="0" min="0" required>
+        </p>
+        <p>
+            <label>Salidas:</label><br>
+            <input type="number" name="salidas" value="0" min="0" required>
+        </p>
+        <p>
+            <button type="submit">Agregar</button>
+        </p>
+    </form>
+    <p style="text-align:center"><a href="/inventario">Volver al inventario</a></p>
+</body>
+
+</html>

@@ -1,0 +1,170 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Reporte de Compras B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-shopping-cart text-primary"></i> Reporte de Compras
+            </h1>
+            <p class="text-muted mb-0">Facturas recibidas de proveedores B2B</p>
+        </div>
+        <div>
+            <a href="{{ url_for('reportes_b2b') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Fin</label>
+                    <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Proveedor</label>
+                    <select name="proveedor_id" class="form-select">
+                        <option value="">Todos los proveedores</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}" {% if proveedor_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ totales.num_facturas or 0 }}</h3>
+                    <small>Facturas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_subtotal or 0) }}</h3>
+                    <small>Subtotal</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_iva or 0) }}</h3>
+                    <small>IVA</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_general or 0) }}</h3>
+                    <small>Total Compras</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Por Proveedor -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Compras por Proveedor</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Proveedor</th>
+                                <th class="text-center">#</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in por_proveedor %}
+                            <tr>
+                                <td>{{ p.proveedor }}</td>
+                                <td class="text-center">{{ p.num_facturas }}</td>
+                                <td class="text-end fw-bold">${{ '{:,.2f}'.format(p.total or 0) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalle -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Detalle de Facturas</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Folio</th>
+                                    <th>Proveedor</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end">IVA</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for f in facturas %}
+                                <tr>
+                                    <td>{{ f.fecha_emision.strftime('%d/%m/%Y') if f.fecha_emision else '-' }}</td>
+                                    <td><a href="{{ url_for('ver_factura_b2b', factura_id=f.id) }}">{{ f.folio }}</a></td>
+                                    <td>{{ f.proveedor_nombre }}</td>
+                                    <td class="text-end">${{ '{:,.2f}'.format(f.subtotal or 0) }}</td>
+                                    <td class="text-end">${{ '{:,.2f}'.format(f.iva or 0) }}</td>
+                                    <td class="text-end fw-bold">${{ '{:,.2f}'.format(f.total or 0) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" class="text-center text-muted py-4">Sin facturas en el período</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, nav, #sidebar { display: none !important; }
+    #content { margin-left: 0 !important; }
+}
+</style>
+{% endblock %}

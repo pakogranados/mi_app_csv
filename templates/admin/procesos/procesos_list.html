@@ -1,0 +1,19 @@
+{% extends "sidebar.html" %}{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4>Procesos</h4>
+  <a class="btn btn-primary" href="{{ url_for('nuevo_proceso') }}">Nuevo</a>
+</div>
+<table class="table table-sm align-middle">
+  <thead><tr><th>ID</th><th>Nombre</th><th>Activo</th><th></th></tr></thead>
+  <tbody>
+  {% for x in procesos %}
+    <tr>
+      <td>{{ x.id }}</td>
+      <td><a href="{{ url_for('ver_proceso', proceso_id=x.id) }}">{{ x.nombre }}</a></td>
+      <td>{{ 'Sí' if x.activo else 'No' }}</td>
+      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('editar_proceso', proceso_id=x.id) }}">Editar</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

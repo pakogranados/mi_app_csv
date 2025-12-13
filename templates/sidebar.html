@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ERP - Sistema de Gestión{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 70px;
+            --topbar-height: 60px;
+            --primary-color: #2c3e50;
+            --hover-color: #34495e;
+            --accent-color: #3498db;
+        }
+
+        body {
+            overflow-x: hidden;
+            padding-top: var(--topbar-height);
+        }
+
+        /* TOP BAR */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--topbar-height);
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            position: fixed;
+            top: var(--topbar-height);
+            left: 0;
+            height: calc(100vh - var(--topbar-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--primary-color) 0%, #1a252f 100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        #sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        #content {
+            margin-left: var(--sidebar-width);
+            margin-top: 0;
+            transition: all 0.3s ease;
+            min-height: calc(100vh - var(--topbar-height));
+            background: #f8f9fa;
+            padding-top: 1rem;
+        }
+
+        #sidebar.collapsed ~ #content {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        #sidebar.collapsed .sidebar-header h4 {
+            opacity: 0;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: calc(var(--topbar-height) + 20px);
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
+
+        .sidebar-toggle:hover {
+            background: #2980b9;
+        }
+
+        .nav-section {
+            margin: 0.5rem 0;
+        }
+
+        .nav-item {
+            margin: 0;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-link.active {
+            background: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-link i {
+            width: 24px;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        #sidebar.collapsed .nav-link i {
+            margin-right: 0;
+        }
+
+        #sidebar.collapsed .nav-link span {
+            display: none;
+        }
+
+        .nav-link.parent {
+            cursor: pointer;
+        }
+
+        .nav-link.parent::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-left: auto;
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+
+        .nav-link.parent[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+        }
+
+        #sidebar.collapsed .nav-link.parent::after {
+            display: none;
+        }
+
+        .submenu {
+            background: rgba(0,0,0,0.2);
+            padding: 0;
+        }
+
+        .submenu .nav-link {
+            padding-left: 3rem;
+            font-size: 0.9rem;
+            border-left: 3px solid transparent;
+        }
+
+        .submenu .nav-link:hover {
+            padding-left: 3.2rem;
+        }
+
+        #sidebar.collapsed .submenu {
+            display: none !important;
+        }
+
+        .user-info {
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+        }
+
+        #sidebar.collapsed .user-info {
+            display: none;
+        }
+
+        .badge-count {
+            margin-left: auto;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Notificaciones Dropdown */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Badge pulsante para alertas nuevas */
+        @keyframes pulse-badge {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .badge-pulse {
+            animation: pulse-badge 1.5s infinite;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+
+            #sidebar.show {
+                transform: translateX(0);
+            }
+
+            #content {
+                margin-left: 0;
+            }
+
+            .sidebar-toggle {
+                left: 15px;
+                right: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+{# ===== MACRO PARA ENLACES SEGUROS ===== #}
+{% set wip_enabled = false %}
+
+    <!-- TOP BAR -->
+    <nav class="top-bar">
+        <div class="container-fluid h-100">
+            <div class="row h-100 align-items-center">
+                <div class="col">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <!-- Logo y nombre empresa -->
+                        <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('panel_de_control') }}">
+                            {% if g.empresa_logo %}
+                            <img src="{{ g.empresa_logo }}" alt="Logo" class="me-2" style="height: 40px; width: 40px; object-fit: contain; border-radius: 8px;">
+                            {% else %}
+                            <div class="me-2 d-flex align-items-center justify-content-center bg-primary text-white rounded" style="height: 40px; width: 40px; font-size: 1.2rem; font-weight: bold;">
+                                {{ g.empresa_nombre[0] if g.empresa_nombre else 'E' }}
+                            </div> 
+                            {% endif %}
+                            <div class="d-flex flex-column">
+                                <strong class="text-dark" style="line-height: 1.2;">{{ g.empresa_nombre or 'Mi Empresa' }}</strong>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ g.usuario_nombre or session.get('username', 'Usuario') }}</small>
+                            </div>
+                        </a>
+
+                        <!-- Right side: Búsqueda, Notificaciones, Alertas B2B, Alertas WIP, Incidencias, Usuario -->
+                        <div class="d-flex align-items-center gap-3">
+                            
+                            <!-- Búsqueda Global -->
+                            <div class="input-group input-group-sm d-none d-md-flex" style="width: 250px;">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-0 bg-light" 
+                                       placeholder="Buscar..." id="busquedaGlobal">
+                            </div>
+
+                            <!-- NOTIFICACIONES (NUEVO) -->
+                            <a class="btn btn-link text-decoration-none position-relative p-2" 
+                               href="{{ url_for('notificaciones') }}" title="Notificaciones">
+                                <i class="fas fa-bell fs-5 text-primary"></i>
+                                {% if notificaciones_count is defined and notificaciones_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notificaciones-badge"
+                                      style="font-size: 0.65rem;">
+                                    {{ notificaciones_count }}
+                                </span>
+                                {% endif %}
+                            </a>
+
+                            <!-- ALERTAS B2B -->
+                            <a class="btn btn-link text-decoration-none position-relative p-2" 
+                               href="{{ url_for('alertas_panel') }}" title="Alertas B2B">
+                                <i class="fas fa-exclamation-triangle fs-5 text-warning"></i>
+                                {% if alertas_count is defined and alertas_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger badge-pulse"
+                                      id="alertas-badge-b2b" style="font-size: 0.65rem;">
+                                    {{ alertas_count }}
+                                </span>
+                                {% else %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                      id="alertas-badge-b2b" style="font-size: 0.65rem; display: none;">
+                                    0
+                                </span>
+                                {% endif %}
+                            </a>
+
+                            <!-- Alertas WIP -->
+                            <div class="dropdown">
+                                <a class="btn btn-link text-decoration-none position-relative p-2" 
+                                   href="#" id="alertasDropdown" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-clipboard-check fs-5 text-secondary"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                          id="badgeAlertas" style="font-size: 0.65rem; display: none;">
+                                        0
+                                    </span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end shadow" style="width: 350px; max-height: 500px; overflow-y: auto;">
+                                    <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                        <strong>🔔 Alertas del Sistema</strong>
+                                        {% if wip_enabled %}
+                                        <a href="{{ url_for('wip.centro_alertas') }}" class="btn btn-sm btn-link text-decoration-none">Ver todas</a>
+                                        {% else %}
+                                        <span class="btn btn-sm btn-link text-decoration-none text-muted opacity-50" title="Módulo no disponible">Ver todas</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <div id="listaAlertas">
+                                        <div class="text-center p-3">
+                                            <small class="text-muted">Módulo WIP desactivado</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Incidencias -->
+                            <div class="dropdown">
+                                <a class="btn btn-link text-decoration-none position-relative p-2" 
+                                   href="#" id="incidenciasDropdown" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-clipboard-list fs-5 text-info"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info"
+                                          id="badgeIncidencias" style="font-size: 0.65rem; display: none;">
+                                        0
+                                    </span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end shadow" style="width: 350px; max-height: 500px; overflow-y: auto;">
+                                    <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                        <strong>📋 Mis Incidencias</strong>
+                                        {% if wip_enabled %}
+                                        <a href="{{ url_for('wip.centro_incidencias') }}" class="btn btn-sm btn-link text-decoration-none">Ver todas</a>
+                                        {% else %}
+                                        <span class="btn btn-sm btn-link text-decoration-none text-muted opacity-50" title="Módulo no disponible">Ver todas</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <div id="listaIncidencias">
+                                        <div class="text-center p-3">
+                                            <small class="text-muted">Módulo WIP desactivado</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Usuario -->
+                            <div class="dropdown">
+                                <a class="btn btn-link text-decoration-none d-flex align-items-center p-2" 
+                                   href="#" id="userDropdown" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="d-none d-md-flex flex-column align-items-end me-2">
+                                        <strong class="mb-0 text-dark small">{{ session.get('nombre', 'Usuario') }}</strong>
+                                        <small class="text-muted" style="font-size: 0.75rem;">{{ session.get('rol', 'Editor')|capitalize }}</small>
+                                    </div>
+                                    <i class="fas fa-user-circle fs-4 text-secondary"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-user me-2"></i> Mi Perfil
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-cog me-2"></i> Configuración
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('notificaciones') }}">
+                                            <i class="fas fa-bell me-2 text-primary"></i> 
+                                            Notificaciones
+                                            {% if notificaciones_count is defined and notificaciones_count > 0 %}
+                                            <span class="badge bg-danger ms-2 notificaciones-badge">{{ notificaciones_count }}</span>
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('alertas_panel') }}">
+                                            <i class="fas fa-exclamation-triangle me-2 text-warning"></i> 
+                                            Alertas B2B
+                                            <span class="badge bg-danger ms-2" id="badgeAlertasMenuB2B">{{ alertas_count if alertas_count is defined else 0 }}</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        {% if wip_enabled %}
+                                        <a class="dropdown-item" href="{{ url_for('wip.centro_alertas') }}">
+                                        {% else %}
+                                        <span class="dropdown-item text-muted opacity-50" title="Módulo no disponible">
+                                        {% endif %}
+                                            <i class="fas fa-clipboard-check me-2 text-secondary"></i> 
+                                            Alertas WIP 
+                                            <span class="badge bg-secondary ms-2" id="badgeAlertasMenu">0</span>
+                                        {% if wip_enabled %}</a>{% else %}</span>{% endif %}
+                                    </li>
+                                    <li>
+                                        {% if wip_enabled %}
+                                        <a class="dropdown-item" href="{{ url_for('wip.centro_incidencias') }}">
+                                        {% else %}
+                                        <span class="dropdown-item text-muted opacity-50" title="Módulo no disponible">
+                                        {% endif %}
+                                            <i class="fas fa-clipboard-list me-2 text-info"></i> 
+                                            Mis Incidencias
+                                            <span class="badge bg-info ms-2" id="badgeIncidenciasMenu">0</span>
+                                        {% if wip_enabled %}</a>{% else %}</span>{% endif %}
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left" id="toggle-icon"></i>
+        </button>
+
+        <div class="sidebar-header">
+            <h4><i class="fas fa-chart-line me-2"></i>ERP System</h4>
+        </div>
+
+        <ul class="nav flex-column">
+            <!-- Panel de Control -->
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('panel_de_control') }}">
+                    <i class="fas fa-home"></i>
+                    <span>Panel de Control</span>
+                </a>
+            </li>
+
+            <!-- =============================================
+                 ADMINISTRACIÓN (CORREGIDO)
+                 ============================================= -->
+            {% if session.get('rol') == 'admin' %}
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuAdmin" role="button">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Administración</span>
+                </a>
+                <div class="collapse submenu" id="menuAdmin">
+                    <a class="nav-link" href="{{ url_for('admin_registro_usuarios') }}">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Gestión de Usuarios</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_areas') }}">
+                        <i class="fas fa-sitemap"></i>
+                        <span>Áreas del Sistema</span>
+                    </a>
+                    
+                </div>
+            </li>
+            {% endif %}
+
+            <!-- Notificaciones (NUEVO) -->
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between" href="{{ url_for('notificaciones') }}">
+                    <span><i class="fas fa-bell"></i> Notificaciones</span>
+                    {% if notificaciones_count is defined and notificaciones_count > 0 %}
+                    <span class="badge bg-danger rounded-pill notificaciones-badge">{{ notificaciones_count }}</span>
+                    {% endif %}
+                </a>
+            </li>
+
+            <!-- Usuarios (simplificado) -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuAuth" role="button">
+                    <i class="fas fa-users"></i>
+                    <span>Mi Cuenta</span>
+                </a>
+                <div class="collapse submenu" id="menuAuth">
+                    <a class="nav-link" href="{{ url_for('registro') }}">
+                        <i class="fas fa-user-edit"></i>
+                        <span>Mi Perfil</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('logout') }}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Inventarios -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuInventarios" role="button">
+                    <i class="fas fa-boxes"></i>
+                    <span>Inventarios</span>
+                </a>
+                <div class="collapse submenu" id="menuInventarios">
+                    <a class="nav-link" href="{{ url_for('mostrar_inventario_mp') }}">
+                        <i class="fas fa-seedling"></i>
+                        <span>Materias Primas (MP)</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('mostrar_inventario_wip') }}">
+                        <i class="fas fa-cogs"></i>
+                        <span>Produccion en Proceso</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('inventario_pt_view') }}">
+                        <i class="fas fa-box-open"></i>
+                        <span>Terminados (PT)</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('catalogo_mp') }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Catálogo MP</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('productos_terminados') }}">
+                        <i class="fas fa-box"></i>
+                        <span>Productos PT</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Compras y Proveedores -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuCompras" role="button">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                </a>
+                <div class="collapse submenu" id="menuCompras">
+                    <a class="nav-link" href="{{ url_for('nueva_compra') }}">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Nueva Compra</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('listado_compras') }}">
+                        <i class="fas fa-list"></i>
+                        <span>Listado de Compras</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('mercancia') }}">
+                        <i class="fas fa-cubes"></i>
+                        <span>Mercancías</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('registrar_proveedor') }}">
+                        <i class="fas fa-truck"></i>
+                        <span>Proveedores</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Producción (WIP) -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuProduccion" role="button">
+                    <i class="fas fa-industry"></i>
+                    <span>Producción</span>
+                </a>
+                <div class="collapse submenu" id="menuProduccion">
+                    <a class="nav-link" href="{{ url_for('wip.ordenes_list') }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Órdenes de Producción</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('wip.orden_nueva') }}">
+                        <i class="fas fa-plus-square"></i>
+                        <span>Nueva Orden</span>
+                    </a>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    
+                    <a class="nav-link" href="{{ url_for('wip.procesos_list') }}">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Procesos/Recetas</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('wip.procesos_nuevo') }}">
+                        <i class="fas fa-folder-plus"></i>
+                        <span>Nuevo Proceso</span>
+                    </a>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    
+                    <a class="nav-link" href="{{ url_for('listar_areas') }}">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span>Áreas de Producción</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('catalogo_mp') }}">
+                        <i class="fas fa-cubes"></i>
+                        <span>Catálogo MP/Productos Base</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('unidades_medida') }}">
+                        <i class="fas fa-ruler"></i>
+                        <span>Unidades de Medida</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Ventas -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuVentas" role="button">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Ventas</span>
+                </a>
+                <div class="collapse submenu" id="menuVentas">
+                    <a href="{{ url_for('apertura_turno') }}" class="nav-link">
+                        <i class="fas fa-store"></i>
+                        <span>Apertura de Turno</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('caja') }}">
+                        <i class="fas fa-calculator"></i>
+                        <span>Caja de Cobro</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('pt_catalogo') }}">
+                        <i class="fas fa-tags"></i>
+                        <span>Catálogo PT</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('historial_tickets') }}">
+                        <i class="fas fa-history"></i>
+                        <span>Historial de Tickets</span>
+                    </a>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    <a class="nav-link" href="{{ url_for('registros_historicos_dashboard') }}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Registros Históricos</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- =============================================
+                 FACTURACIÓN B2B
+                 ============================================= -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuB2B" role="button">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Facturación B2B</span>
+                    {% if alertas_count is defined and alertas_count > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-auto me-2" style="font-size: 0.65rem;">{{ alertas_count }}</span>
+                    {% endif %}
+                </a>
+                <div class="collapse submenu" id="menuB2B">
+                    <!-- Alertas -->
+                    <a class="nav-link" href="{{ url_for('alertas_panel') }}">
+                        <i class="fas fa-bell {% if alertas_count is defined and alertas_count > 0 %}text-warning{% endif %}"></i>
+                        <span>Alertas</span>
+                        {% if alertas_count is defined and alertas_count > 0 %}
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ alertas_count }}</span>
+                        {% endif %}
+                    </a>
+                    
+                    <!-- Invitaciones B2B -->
+                    <a class="nav-link" href="{{ url_for('admin_invitaciones') }}">
+                        <i class="fas fa-envelope-open-text"></i>
+                        <span>Invitaciones</span>
+                    </a>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    
+                    <!-- Como Cliente (Compramos) -->
+                    <a class="nav-link" href="{{ url_for('ordenes_compra_b2b') }}">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Órdenes de Compra</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('facturas_recibidas_b2b') }}">
+                        <i class="fas fa-inbox"></i>
+                        <span>Facturas Recibidas</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('recepcion_mercancia_b2b') }}">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Recepción Mercancía</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('cuentas_por_pagar_b2b') }}">
+                        <i class="fas fa-money-check-alt"></i>
+                        <span>Cuentas por Pagar</span>
+                    </a>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    
+                    <!-- Como Proveedor (Vendemos) -->
+                    <a class="nav-link" href="{{ url_for('pedidos_recibidos_b2b') }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Pedidos Recibidos</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('facturas_emitidas_b2b') }}">
+                        <i class="fas fa-file-invoice"></i>
+                        <span>Facturas Emitidas</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('almacen_preparacion_b2b') }}">
+                        <i class="fas fa-box"></i>
+                        <span>Preparación Almacén</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('reparto_b2b') }}">
+                        <i class="fas fa-truck"></i>
+                        <span>Reparto</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('cuentas_por_cobrar_b2b') }}">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <span>Cuentas por Cobrar</span>
+                    </a>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    
+                    <!-- Configuración B2B -->
+                    <a class="nav-link" href="{{ url_for('configurar_roles_b2b') }}">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Roles B2B</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('relaciones_b2b') }}">
+                        <i class="fas fa-handshake"></i>
+                        <span>Relaciones Comerciales</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Facturación CFDI -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuFacturacion" role="button">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Facturación CFDI</span>
+                </a>
+                <div class="collapse submenu" id="menuFacturacion">
+                    <a class="nav-link" href="{{ url_for('facturacion_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('facturacion_b2b_nueva') }}">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Emitir Factura B2B</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('facturacion_b2b_emitidas') }}">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Facturas Emitidas</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('facturacion_b2b_recibidas') }}">
+                        <i class="fas fa-inbox"></i>
+                        <span>Bandeja de Entrada</span>
+                    </a>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 1rem;"></div>
+                    <a class="nav-link" href="{{ url_for('cfdi_importar') }}">
+                        <i class="fas fa-upload"></i>
+                        <span>Importar CFDI</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('cfdi_listado') }}">
+                        <i class="fas fa-file-code"></i>
+                        <span>CFDI Importados</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Contabilidad -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuContabilidad" role="button">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Contabilidad</span>
+                </a>
+                <div class="collapse submenu" id="menuContabilidad">
+                    <a class="nav-link" href="{{ url_for('catalogo_cuentas') }}">
+                        <i class="fas fa-book"></i>
+                        <span>Catálogo de Cuentas</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('subcuentas_contables') }}">
+                        <i class="fas fa-list-ol"></i>
+                        <span>Subcuentas</span>
+                    </a>
+                </div>
+            </li>
+
+            <!-- Configuración -->
+            <li class="nav-item">
+                <a class="nav-link parent" data-bs-toggle="collapse" href="#menuConfig" role="button">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+                <div class="collapse submenu" id="menuConfig">
+                    <a class="nav-link" href="{{ url_for('recetas_list') }}">
+                        <i class="fas fa-book-open"></i>
+                        <span>Recetas/Procesos</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('unidades_medida') }}">
+                        <i class="fas fa-ruler"></i>
+                        <span>Unidades de Medida</span>
+                    </a>
+                </div>
+            </li>
+        </ul>
+
+        <!-- User Info -->
+        {% if session.get('usuario_id') %}
+        <div class="user-info">
+            <i class="fas fa-user-circle me-2"></i>
+            <strong>{{ session.get('usuario', 'Usuario') }}</strong><br>
+            <small>Rol: {{ session.get('rol', 'N/A')|capitalize }}</small>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Content -->
+    <div id="content">
+        <div class="container-fluid">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ===== CONFIGURACIÓN: Habilitar/deshabilitar módulo WIP =====
+        const WIP_ENABLED = false;  // Cambiar a true cuando se active el módulo WIP
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('toggle-icon');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+        }
+
+        // Marcar enlace activo
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link:not(.parent)');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                    const parentCollapse = link.closest('.collapse');
+                    if (parentCollapse) {
+                        parentCollapse.classList.add('show');
+                    }
+                }
+            });
+
+            // Actualizar alertas B2B cada 30 segundos
+            actualizarAlertasB2B();
+            setInterval(actualizarAlertasB2B, 30000);
+
+            // Actualizar notificaciones cada 60 segundos
+            actualizarNotificaciones();
+            setInterval(actualizarNotificaciones, 60000);
+
+            // Solo cargar notificaciones WIP si está habilitado
+            if (WIP_ENABLED) {
+                cargarAlertas();
+                cargarIncidencias();
+                
+                setInterval(function() {
+                    cargarAlertas();
+                    cargarIncidencias();
+                }, 120000);
+                
+                document.getElementById('alertasDropdown')?.addEventListener('show.bs.dropdown', cargarAlertas);
+                document.getElementById('incidenciasDropdown')?.addEventListener('show.bs.dropdown', cargarIncidencias);
+            }
+        });
+
+        // =============================================
+        // ALERTAS B2B
+        // =============================================
+        function actualizarAlertasB2B() {
+            fetch('/api/alertas/count')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('alertas-badge-b2b');
+                const badgeMenu = document.getElementById('badgeAlertasMenuB2B');
+                
+                if (data.count > 0) {
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'inline-block';
+                        badge.classList.add('badge-pulse');
+                    }
+                    if (badgeMenu) {
+                        badgeMenu.textContent = data.count;
+                    }
+                } else {
+                    if (badge) {
+                        badge.style.display = 'none';
+                        badge.classList.remove('badge-pulse');
+                    }
+                    if (badgeMenu) {
+                        badgeMenu.textContent = '0';
+                    }
+                }
+            })
+            .catch(err => console.log('Error actualizando alertas B2B'));
+        }
+
+        // =============================================
+        // NOTIFICACIONES DE USUARIO (NUEVO)
+        // =============================================
+        function actualizarNotificaciones() {
+            fetch('/api/notificaciones/count')
+            .then(response => response.json())
+            .then(data => {
+                const badges = document.querySelectorAll('.notificaciones-badge');
+                badges.forEach(badge => {
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                });
+            })
+            .catch(err => console.log('Error actualizando notificaciones'));
+        }
+
+        // =============================================
+        // ALERTAS WIP (cuando se habilite)
+        // =============================================
+        function cargarAlertas() {
+            if (!WIP_ENABLED) return;
+            
+            fetch('/wip/api/alertas/resumen')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('badgeAlertas');
+                    const badgeMenu = document.getElementById('badgeAlertasMenu');
+                    
+                    if (data.total > 0) {
+                        badge.textContent = data.total;
+                        badge.style.display = 'inline-block';
+                        badgeMenu.textContent = data.total;
+                    } else {
+                        badge.style.display = 'none';
+                        badgeMenu.textContent = '0';
+                    }
+                    
+                    const lista = document.getElementById('listaAlertas');
+                    
+                    if (data.alertas && data.alertas.length > 0) {
+                        lista.innerHTML = data.alertas.map(alerta => `
+                            <a href="/wip/alerta/${alerta.id}/detalle" class="dropdown-item py-2 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-2" style="font-size: 20px;">
+                                        ${alerta.estado_visual === 'vencida' ? '⏰' : 
+                                          alerta.estado_visual === 'urgente' ? '🔴' : '🔵'}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold small">${alerta.titulo}</div>
+                                        <small class="text-muted">
+                                            ${alerta.referencia_codigo || alerta.codigo}
+                                            ${alerta.fecha_limite ? ` • Vence: ${alerta.fecha_limite}` : ''}
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('');
+                    } else {
+                        lista.innerHTML = `
+                            <div class="text-center p-4 text-muted">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                <p class="mb-0 small">¡Todo al día! 🎉</p>
+                                <small>No hay alertas pendientes</small>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error cargando alertas:', err);
+                    document.getElementById('badgeAlertas').style.display = 'none';
+                });
+        }
+
+        function cargarIncidencias() {
+            if (!WIP_ENABLED) return;
+            
+            fetch('/wip/api/incidencias/resumen')
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('badgeIncidencias');
+                    const badgeMenu = document.getElementById('badgeIncidenciasMenu');
+                    
+                    if (data.total > 0) {
+                        badge.textContent = data.total;
+                        badge.style.display = 'inline-block';
+                        badgeMenu.textContent = data.total;
+                    } else {
+                        badge.style.display = 'none';
+                        badgeMenu.textContent = '0';
+                    }
+                    
+                    const lista = document.getElementById('listaIncidencias');
+                    
+                    if (data.incidencias && data.incidencias.length > 0) {
+                        lista.innerHTML = data.incidencias.map(inc => `
+                            <a href="/wip/incidencia/${inc.id}/detalle" class="dropdown-item py-2 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-2" style="font-size: 20px;">
+                                        ${inc.estado_visual === 'vencida' ? '⏰' :
+                                          inc.estado_visual === 'critica' ? '🔴' :
+                                          inc.estado_visual === 'urgente' ? '🟡' : '🟢'}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold small">${inc.titulo}</div>
+                                        <small class="text-muted">
+                                            ${inc.codigo || '#' + inc.id}
+                                            ${inc.fecha_cumplimiento ? ` • Vence: ${inc.fecha_cumplimiento}` : ''}
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('');
+                    } else {
+                        lista.innerHTML = `
+                            <div class="text-center p-4 text-muted">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                <p class="mb-0 small">¡Todo al día! 🎉</p>
+                                <small>No tienes incidencias asignadas</small>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error cargando incidencias:', err);
+                    document.getElementById('badgeIncidencias').style.display = 'none';
+                });
+        }
+
+        // Responsive
+        if (window.innerWidth <= 768) {
+            document.querySelectorAll('.nav-link:not(.parent)').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.remove('show');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

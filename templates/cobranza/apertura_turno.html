@@ -1,0 +1,201 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<style>
+  .apertura-container {
+    max-width: 900px;
+    margin: 20px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 30px;
+  }
+  .section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .form-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+  }
+  .big-input {
+    font-size: 20px;
+    padding: 12px;
+    text-align: center;
+    font-weight: 500;
+  }
+  .producto-row {
+    display: grid;
+    grid-template-columns: 2fr 80px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+  }
+  .producto-row:hover {
+    background: #f8f9fa;
+  }
+  .btn-apertura {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-apertura:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+  .inventario-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+</style>
+
+<div class="apertura-container">
+  <h2 class="text-center mb-4">🏪 Apertura de Turno</h2>
+  
+  {% if turno_abierto %}
+  <div class="alert alert-warning">
+    ⚠️ Ya tienes un turno abierto desde {{ turno_abierto.fecha_apertura }}.
+    <a href="{{ url_for('caja') }}" class="btn btn-primary ms-3">Ir a Caja</a>
+    <a href="{{ url_for('cerrar_turno') }}" class="btn btn-danger ms-2">Cerrar Turno</a>
+  </div>
+  {% else %}
+  
+  <div class="alert-info">
+    <strong>👤 Cajero:</strong> {{ session.get('username', 'Usuario') }} | 
+    <strong>📅 Fecha:</strong> {{ fecha_actual }} | 
+    <strong>⏰ Hora:</strong> {{ hora_actual }}
+  </div>
+  <form method="post" action="{{ url_for('apertura_turno') }}" id="formApertura">
+    
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+  
+  <!-- 1. FONDO DE CAJA -->
+        <div class="form-section">
+            <div class="section-header">💰 1. Fondo de Caja</div>
+            <label class="form-label">Monto inicial del turno:</label>
+            <input type="number" name="fondo_inicial" class="form-control big-input" 
+                step="0.01" min="0" required placeholder="$0.00" 
+                value="{{ fondo_sugerido|default(500.00) }}">
+            <small class="text-muted">Sugerido: ${{ fondo_sugerido|default(500.00) }}</small>
+        </div>
+
+        <!-- 2. TIPO DE CAMBIO -->
+        <div class="form-section">
+            <div class="section-header">💵 2. Tipo de Cambio</div>
+            <label class="form-label">USD → MXN del día:</label>
+            <div class="input-group">
+            <span class="input-group-text">$1 =</span>
+            <input type="number" name="tipo_cambio" class="form-control big-input" 
+                    step="0.01" min="0" required placeholder="20.00" 
+                    value="{{ tipo_cambio_sugerido|default(20.00) }}">
+            <span class="input-group-text">MXN</span>
+            </div>
+            <small class="text-muted">Verifica el TC actual</small>
+        </div>
+
+    </div>
+            
+    
+    
+    
+    
+   
+    <!-- 3. INVENTARIO INICIAL -->
+    <div class="form-section">
+      <div class="section-header">📦 3. Conteo de Inventario Inicial</div>
+      <p class="text-muted mb-3">
+        <strong>Instrucciones:</strong> Cuenta <u>físicamente</u> cada producto y captura la cantidad real.
+      </p>
+      
+      <div class="inventario-scroll">
+        {% for producto in productos %}
+        <div class="producto-row">
+          <div>
+            <strong>{{ producto.nombre }}</strong>
+            <input type="hidden" name="producto_id[]" value="{{ producto.id }}">
+            <input type="hidden" name="producto_nombre[]" value="{{ producto.nombre }}">
+          </div>
+          
+          <div>
+            <input type="number" name="cantidad[]" class="form-control form-control-sm" 
+                    step="0.01" min="0" value="0"
+                    title="Conteo físico">
+          </div>
+        </div>
+        {% else %}
+        <p class="text-center text-muted">No hay productos PT registrados</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- NOTAS OPCIONALES -->
+    <div class="form-section">
+      <div class="section-header">📝 Notas (Opcional)</div>
+      <textarea name="notas" class="form-control" rows="3" 
+                placeholder="Ej: Recibí turno de Juan, todo en orden..."></textarea>
+    </div>
+
+    <!-- BOTÓN ABRIR -->
+    <button type="submit" class="btn-apertura">
+      🚀 ABRIR TURNO
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+  // Validar antes de enviar
+  document.getElementById('formApertura')?.addEventListener('submit', function(e) {
+    const fondo = parseFloat(document.querySelector('[name="fondo_inicial"]').value);
+    const tc = parseFloat(document.querySelector('[name="tipo_cambio"]').value);
+    
+    if (fondo < 0 || tc < 0) {
+      e.preventDefault();
+      alert('Los valores no pueden ser negativos');
+      return false;
+    }
+    
+    // Verificar que se hayan contado los productos
+    const cantidades = document.querySelectorAll('input[name="cantidad[]"]');
+    let algunoVacio = false;
+    cantidades.forEach(input => {
+      if (!input.value || input.value.trim() === '') {
+        algunoVacio = true;
+      }
+    });
+    
+    if (algunoVacio) {
+      if (!confirm('Algunos productos no tienen cantidad capturada. ¿Deseas continuar de todos modos?')) {
+        e.preventDefault();
+        return false;
+      }
+    }
+    
+    if (!confirm('¿Confirmas abrir el turno con estos datos?')) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+{% endblock %}

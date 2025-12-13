@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Inventario Consolidado</h2>
+    <table class="table table-bordered table-hover mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Producto</th>
+                <th>Inventario Inicial</th>
+                <th>Entradas</th>
+                <th>Salidas</th>
+                <th>Disponible</th>
+                <th>Valor Inventario (PEPS)</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventario %}
+            <tr>
+                <td>{{ item.producto }}</td>
+                <td>{{ item.inventario_inicial }}</td>
+                <td>{{ item.entradas }}</td>
+                <td>{{ item.salidas }}</td>
+                <td><strong>{{ item.disponible }}</strong></td>
+                <td>${{ "%.2f"|format(item.valor_inventario) }}</td>
+                <td>
+                    <a href="{{ url_for('ver_movimientos', producto_id=item.id) }}" 
+                       class="btn btn-sm btn-info">
+                        Ver Movimientos
+                    </a>
+                    <a href="{{ url_for('ajustar_inventario', producto_id=item.id) }}" 
+                       class="btn btn-sm btn-warning">
+                        Ajustar
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center">No hay productos en inventario.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

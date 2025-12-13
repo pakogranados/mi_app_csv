@@ -1,0 +1,147 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="row">
+    
+    <!-- Panel Izquierdo - Productos -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-warning">
+          <h5 class="mb-0">🍦 Registrar Consumo Propio</h5>
+        </div>
+        <div class="card-body">
+          
+          <div class="alert alert-info">
+            <strong>Turno #{{ turno.id }}</strong> - {{ turno.usuario_nombre }}
+          </div>
+
+          <form method="post" action="{{ url_for('agregar_consumo') }}">
+            <div class="mb-3">
+              <label class="form-label">Producto *</label>
+              <select name="producto_id" class="form-select" required id="selectProducto">
+                <option value="">Selecciona un producto...</option>
+                {% for p in productos %}
+                  <option value="{{ p.id }}" data-precio="{{ p.precio }}">
+                    {{ p.nombre }} - ${{ "%.2f"|format(p.precio) }}
+                    (Stock: {{ "%.2f"|format(p.existencias) }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Cantidad *</label>
+              <input type="number" name="cantidad" class="form-control" 
+                     step="0.01" min="0.01" value="1" required id="inputCantidad">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Notas (opcional)</label>
+              <input type="text" name="notas" class="form-control" 
+                     placeholder="Ej: Consumo personal, degustación...">
+            </div>
+
+            <div class="alert alert-secondary">
+              <strong>Subtotal:</strong> <span id="subtotalPreview">$0.00</span>
+            </div>
+
+            <button type="submit" class="btn btn-warning w-100">
+              ➕ Registrar Consumo
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Derecho - Lista de Consumos -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0">📋 Consumos Registrados</h5>
+        </div>
+        <div class="card-body">
+          
+          <div class="alert alert-success">
+            <strong>Total en Consumos:</strong> ${{ "%.2f"|format(total_consumos) }}
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-end">Cant</th>
+                  <th class="text-end">Precio</th>
+                  <th class="text-end">Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in consumos %}
+                <tr>
+                  <td>
+                    {{ c.producto_nombre }}
+                    {% if c.notas %}
+                      <br><small class="text-muted">{{ c.notas }}</small>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ "%.2f"|format(c.cantidad) }}</td>
+                  <td class="text-end">${{ "%.2f"|format(c.precio_unitario) }}</td>
+                  <td class="text-end"><strong>${{ "%.2f"|format(c.subtotal) }}</strong></td>
+                  <td>
+                    <form method="post" action="{{ url_for('eliminar_consumo', consumo_id=c.id) }}" 
+                          style="display:inline;" 
+                          onsubmit="return confirm('¿Eliminar este consumo?')">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                    </form>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted">
+                    No hay consumos registrados
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <hr>
+
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('cerrar_turno') }}" class="btn btn-danger">
+              🔒 Continuar al Cierre de Turno
+            </a>
+            <a href="{{ url_for('caja') }}" class="btn btn-outline-secondary">
+              ← Volver a Caja
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const selectProducto = document.getElementById('selectProducto');
+  const inputCantidad = document.getElementById('inputCantidad');
+  const subtotalPreview = document.getElementById('subtotalPreview');
+
+  function calcularSubtotal() {
+    const option = selectProducto.options[selectProducto.selectedIndex];
+    const precio = parseFloat(option.dataset.precio || 0);
+    const cantidad = parseFloat(inputCantidad.value || 0);
+    const subtotal = precio * cantidad;
+    subtotalPreview.textContent = '$' + subtotal.toFixed(2);
+  }
+
+  selectProducto.addEventListener('change', calcularSubtotal);
+  inputCantidad.addEventListener('input', calcularSubtotal);
+</script>
+
+{% endblock %}

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <title>Catálogo de Cuentas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace
+        }
+
+        .indent-1 {
+            padding-left: 16px
+        }
+
+        .indent-2 {
+            padding-left: 32px
+        }
+
+        .indent-3 {
+            padding-left: 48px
+        }
+    </style>
+</head>
+
+<body class="container py-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} mb-3">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Catálogo de Cuentas</h2>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('cuentas_contables') }}">Refrescar</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Tabla de cuentas -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><strong>Estructura (niveles 1–3)</strong></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 160px;">Número</th>
+                                    <th>Nombre</th>
+                                    <th style="width: 110px;">Tipo</th>
+                                    <th class="text-center" style="width: 70px;">Nivel</th>
+                                    <th style="width: 200px;">Padre</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in cuentas %}
+                                <tr>
+                                    <td class="mono">{{ c.numero_cuenta }}</td>
+                                    <td class="indent-{{ c.nivel|int }}">{{ c.nombre }}</td>
+                                    <td>{{ c.tipo }}</td>
+                                    <td class="text-center">{{ c.nivel }}</td>
+                                    <td>
+                                        {% if c.padre_id %}
+                                        {% set p = (cuentas|selectattr('id','equalto',c.padre_id)|first) %}
+                                        {{ p.numero_cuenta if p else '—' }}
+                                        {% else %} — {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if not cuentas %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Sin cuentas</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Reglas: Nivel 1 = <span class="mono">AAA-000-000</span>; Nivel 2 = <span
+                        class="mono">AAA-BBB-000</span>;
+                    Nivel 3 = <span class="mono">AAA-BBB-CCC</span>.
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de creación -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><strong>Nueva cuenta / subcuenta</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('cuentas_contables') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Número (###-###-###)</label>
+                            <input type="text" name="numero_cuenta" class="form-control mono"
+                                placeholder="Ej. 100-000-000" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" name="nombre" class="form-control" placeholder="Ej. Caja" required>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Tipo</label>
+                                <select name="tipo" id="sel-tipo" class="form-select" required>
+                                    <option value="ACTIVO">ACTIVO</option>
+                                    <option value="PASIVO">PASIVO</option>
+                                    <option value="CAPITAL">CAPITAL</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Nivel</label>
+                                <select name="nivel" id="sel-nivel" class="form-select" required>
+                                    <option value="1">1 (raíz)</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-2">
+                            <label class="form-label">Padre (solo para nivel 2 o 3)</label>
+                            <select name="padre_id" id="sel-padre" class="form-select">
+                                <option value="">— Sin padre (solo nivel 1) —</option>
+                                {% for p in padres %}
+                                <option value="{{ p.id }}" data-nivel="{{ p.nivel }}" data-tipo="{{ p.tipo|upper }}">
+                                    {{ "-" * (p.nivel|int - 1 if p.nivel and p.nivel>1 else 0) }} {{ p.numero_cuenta }}
+                                    — {{ p.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">El padre debe ser de nivel (nivel elegido - 1) y del mismo tipo.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Filtra opciones de padre según nivel y tipo
+        (function () {
+            const selNivel = document.getElementById('sel-nivel');
+            const selTipo = document.getElementById('sel-tipo');
+            const selPadre = document.getElementById('sel-padre');
+            const allOptions = Array.from(selPadre.options);
+
+            function refreshPadres() {
+                const nivel = parseInt(selNivel.value, 10);
+                const tipo = selTipo.value.toUpperCase();
+
+                // Habilitar/deshabilitar padre
+                selPadre.disabled = (nivel === 1);
+
+                // Reconstruir opciones
+                selPadre.innerHTML = '';
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = '— Sin padre (solo nivel 1) —';
+                selPadre.appendChild(placeholder);
+
+                // Padre debe ser nivel-1 y mismo tipo
+                const reqNivelPadre = nivel - 1;
+                allOptions.forEach(opt => {
+                    const n = parseInt(opt.getAttribute('data-nivel') || '0', 10);
+                    const t = (opt.getAttribute('data-tipo') || '').toUpperCase();
+                    if (!opt.value) return; // saltar placeholder original
+                    if (nivel === 1) return; // no mostrar nada más
+                    if (n === reqNivelPadre && t === tipo) {
+                        selPadre.appendChild(opt.cloneNode(true));
+                    }
+                });
+            }
+
+            selNivel.addEventListener('change', refreshPadres);
+            selTipo.addEventListener('change', refreshPadres);
+            refreshPadres();
+        })();
+        <form method="post" action="{{ url_for('cuentas_contables_bootstrap') }}" class="mb-3">
+            <button type="submit" class="btn btn-sm btn-outline-primary">
+                Crear/actualizar catálogo base
+            </button>
+        </form>
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

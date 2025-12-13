@@ -1,0 +1,18 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Procesos por Producto Terminado</h3>
+  <table class="table table-sm table-striped">
+    <thead><tr><th>PT</th><th>Proceso</th><th></th></tr></thead>
+    <tbody>
+      {% for x in pts %}
+      <tr>
+        <td>{{ x.pt_nombre }}</td>
+        <td>{{ 'Definido' if x.tiene_proceso else 'Pendiente' }}</td>
+        <td><a class="btn btn-primary btn-sm" href="{{ url_for('recetas_proceso', pt_id=x.pt_id) }}">Configurar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

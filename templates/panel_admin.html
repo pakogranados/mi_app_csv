@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Panel de control{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Panel de control</h1>
+
+<!-- KPIs -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="text-sm text-slate-500">MP disponibles</div>
+    <div id="kpi-mp" class="mt-2 text-2xl font-semibold">—</div>
+  </div>
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="text-sm text-slate-500">WIP</div>
+    <div id="kpi-wip" class="mt-2 text-2xl font-semibold">—</div>
+  </div>
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="text-sm text-slate-500">PT</div>
+    <div id="kpi-pt" class="mt-2 text-2xl font-semibold">—</div>
+  </div>
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="text-sm text-slate-500">SKUs con stock</div>
+    <div id="kpi-skus" class="mt-2 text-2xl font-semibold">—</div>
+  </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+  <a href="/nueva_compra" class="rounded-2xl border border-slate-200 bg-white p-4 hover:shadow">
+    <div class="text-sm text-slate-500">Compras</div>
+    <div class="mt-1 font-semibold">Registrar nueva compra</div>
+  </a>
+  <a href="/registrar_proveedor" class="rounded-2xl border border-slate-200 bg-white p-4 hover:shadow">
+    <div class="text-sm text-slate-500">Proveedores</div>
+    <div class="mt-1 font-semibold">Registrar proveedor</div>
+  </a>
+  <a href="/mercancia" class="rounded-2xl border border-slate-200 bg-white p-4 hover:shadow">
+    <div class="text-sm text-slate-500">SKU</div>
+    <div class="mt-1 font-semibold">Registrar mercancia</div>
+  </a>
+  <a href="/unidades_medida" class="rounded-2xl border border-slate-200 bg-white p-4 hover:shadow">
+    <div class="text-sm text-slate-500">Unidades</div>
+    <div class="mt-1 font-semibold">Gestionar unidades de medida</div>
+  </a>
+  <a href="/catalogo_cuentas" class="rounded-2xl border border-slate-200 bg-white p-4 hover:shadow">
+    <div class="text-sm text-slate-500">Contabilidad</div>
+    <div class="mt-1 font-semibold">Consulta cuentas contables</div>
+  </a>
+</div>
+
+<!-- Tabla inventario -->
+<div class="rounded-2xl border border-slate-200 bg-white">
+  <div class="flex items-center justify-between p-4 border-b border-slate-200">
+    <h2 class="text-base font-semibold">Inventario por SKU</h2>
+    <a href="/nueva_compra" class="inline-flex items-center rounded-lg bg-brand-600 px-3 py-1.5 text-white text-sm hover:bg-brand-700">+ Compra</a>
+  </div>
+  <div class="p-4 overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="text-left text-slate-500">
+        <tr>
+          <th class="py-2 pr-6">SKU</th>
+          <th class="py-2 pr-6">MP</th>
+          <th class="py-2 pr-6">WIP</th>
+          <th class="py-2 pr-6">PT</th>
+          <th class="py-2 pr-6">Total</th>
+          <th class="py-2">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="inv-body" class="align-top"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(async function(){
+  try{
+    const res = await fetch('/api/v1/inventario');
+    const data = await res.json();
+
+    // KPIs
+    let mp=0,wip=0,pt=0,skus=0;
+    data.forEach(r=>{
+      mp += Number(r.mp||0);
+      wip+= Number(r.wip||0);
+      pt += Number(r.pt||0);
+      if ((Number(r.disponible_total||0))>0) skus++;
+    });
+    document.getElementById('kpi-mp').textContent  = mp.toLocaleString();
+    document.getElementById('kpi-wip').textContent = wip.toLocaleString();
+    document.getElementById('kpi-pt').textContent  = pt.toLocaleString();
+    document.getElementById('kpi-skus').textContent= skus.toLocaleString();
+
+    // Tabla
+    const tbody = document.getElementById('inv-body');
+    tbody.innerHTML = data.map(r=>`
+      <tr class="border-t border-slate-100">
+        <td class="py-3 pr-6 font-medium text-slate-900">${r.nombre}</td>
+        <td class="py-3 pr-6">${Number(r.mp||0).toLocaleString()}</td>
+        <td class="py-3 pr-6">${Number(r.wip||0).toLocaleString()}</td>
+        <td class="py-3 pr-6">${Number(r.pt||0).toLocaleString()}</td>
+        <td class="py-3 pr-6 font-semibold">${Number(r.disponible_total||0).toLocaleString()}</td>
+        <td class="py-3">
+          <a class="text-brand-700 hover:underline" href="/inventarios/movimientos/${r.mercancia_id}">Movs</a>
+          <span class="mx-2 text-slate-300">|</span>
+          <a class="text-brand-700 hover:underline" href="/mercancia">Editar</a>
+        </td>
+      </tr>`).join('');
+  }catch(e){
+    console.error(e);
+  }
+})();
+</script>
+{% endblock %}

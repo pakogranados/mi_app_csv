@@ -1,0 +1,258 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Factura {{ factura.folio }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">🧾 Factura {{ factura.folio }}</h1>
+            <p class="text-muted small mb-0">Detalle de factura B2B</p>
+        </div>
+        <div>
+            <button onclick="window.print()" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+            <a href="{{ url_for('facturacion_b2b_emitidas') if es_emisor else url_for('facturacion_b2b_recibidas') }}" 
+               class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+            <!-- Datos de la Factura -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Emisor -->
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted text-uppercase fw-bold">
+                                    <i class="fas fa-building me-1"></i>Emisor (Proveedor)
+                                </small>
+                                <h5 class="fw-bold mt-2 mb-1">{{ factura.emisor_nombre }}</h5>
+                                {% if factura.emisor_rfc %}
+                                <p class="mb-0 text-muted">RFC: {{ factura.emisor_rfc }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <!-- Receptor -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded h-100">
+                                <small class="text-muted text-uppercase fw-bold">
+                                    <i class="fas fa-user me-1"></i>Receptor (Cliente)
+                                </small>
+                                <h5 class="fw-bold mt-2 mb-1">{{ factura.receptor_nombre }}</h5>
+                                {% if factura.receptor_rfc %}
+                                <p class="mb-0 text-muted">RFC: {{ factura.receptor_rfc }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Productos -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-boxes me-2 text-primary"></i>Detalle de Productos</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="px-4 py-3">Producto</th>
+                                    <th class="px-4 py-3 text-center">Facturado</th>
+                                    {% if factura.estado == 'recibida' or factura.estado == 'con_diferencias' %}
+                                    <th class="px-4 py-3 text-center">Recibido</th>
+                                    {% endif %}
+                                    <th class="px-4 py-3 text-end">P. Unitario</th>
+                                    <th class="px-4 py-3 text-center">IVA</th>
+                                    <th class="px-4 py-3 text-end">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in detalle %}
+                                <tr class="{% if item.tiene_diferencia %}table-warning{% endif %}">
+                                    <td class="px-4">
+                                        <span class="fw-medium">{{ item.descripcion }}</span>
+                                        {% if item.notas_verificacion %}
+                                        <br><small class="text-muted"><i class="fas fa-comment me-1"></i>{{ item.notas_verificacion }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 text-center">
+                                        {{ "{:,.3f}".format(item.cantidad_facturada) }}
+                                    </td>
+                                    {% if factura.estado == 'recibida' or factura.estado == 'con_diferencias' %}
+                                    <td class="px-4 text-center">
+                                        {% if item.tiene_diferencia %}
+                                        <span class="text-danger fw-bold">{{ "{:,.3f}".format(item.cantidad_recibida) }}</span>
+                                        <br><small class="badge bg-{{ 'danger' if item.tipo_diferencia == 'faltante' else 'warning' }}">
+                                            {{ item.tipo_diferencia or 'diferencia' }}
+                                        </small>
+                                        {% else %}
+                                        <span class="text-success">{{ "{:,.3f}".format(item.cantidad_recibida) }}</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td class="px-4 text-end">${{ "{:,.2f}".format(item.precio_unitario) }}</td>
+                                    <td class="px-4 text-center">{{ (item.iva_rate * 100)|int }}%</td>
+                                    <td class="px-4 text-end fw-medium">${{ "{:,.2f}".format(item.importe) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notas de Recepción -->
+            {% if factura.notas_recepcion %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-sticky-note me-2 text-warning"></i>Notas de Recepción</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ factura.notas_recepcion }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Columna Lateral -->
+        <div class="col-lg-4">
+            <!-- Estado -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center">
+                    {% if factura.estado == 'emitida' %}
+                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-paper-plane fa-2x text-info"></i>
+                    </div>
+                    <h5 class="fw-bold text-info">Emitida</h5>
+                    <p class="text-muted small mb-0">Factura enviada, pendiente de recepción por el cliente</p>
+                    {% elif factura.estado == 'pendiente' %}
+                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <h5 class="fw-bold text-warning">Pendiente</h5>
+                    <p class="text-muted small mb-0">Esperando revisión del cliente</p>
+                    {% elif factura.estado == 'en_revision' %}
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-search fa-2x text-primary"></i>
+                    </div>
+                    <h5 class="fw-bold text-primary">En Revisión</h5>
+                    <p class="text-muted small mb-0">El cliente está verificando la mercancía</p>
+                    {% elif factura.estado == 'recibida' %}
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <h5 class="fw-bold text-success">Recibida</h5>
+                    <p class="text-muted small mb-0">Mercancía recibida conforme</p>
+                    {% elif factura.estado == 'con_diferencias' %}
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                    <h5 class="fw-bold text-danger">Con Diferencias</h5>
+                    <p class="text-muted small mb-0">Se reportaron diferencias en la recepción</p>
+                    {% elif factura.estado == 'cancelada' %}
+                    <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-ban fa-2x text-secondary"></i>
+                    </div>
+                    <h5 class="fw-bold text-secondary">Cancelada</h5>
+                    <p class="text-muted small mb-0">Esta factura fue cancelada</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i>Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Folio:</span>
+                        <span class="fw-bold">{{ factura.folio }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Fecha Emisión:</span>
+                        <span>{{ factura.fecha_fmt }}</span>
+                    </div>
+                    {% if factura.fecha_vencimiento_fmt %}
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Fecha Vencimiento:</span>
+                        <span>{{ factura.fecha_vencimiento_fmt }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Forma de Pago:</span>
+                        <span>{{ factura.forma_pago }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Método de Pago:</span>
+                        <span>{{ factura.metodo_pago }}</span>
+                    </div>
+                    {% if factura.condiciones_pago %}
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Condiciones:</span>
+                        <span>{{ factura.condiciones_pago }}</span>
+                    </div>
+                    {% endif %}
+                    {% if factura.fecha_recepcion_fmt %}
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-muted">Fecha Recepción:</span>
+                        <span class="text-success">{{ factura.fecha_recepcion_fmt }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Totales -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-calculator me-2"></i>Totales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal:</span>
+                        <span>${{ "{:,.2f}".format(factura.subtotal) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">IVA:</span>
+                        <span>${{ "{:,.2f}".format(factura.iva) }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="fs-5 fw-bold">Total:</span>
+                        <span class="fs-4 fw-bold text-success">${{ "{:,.2f}".format(factura.total) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .sidebar, nav { display: none !important; }
+    .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+</style>
+{% endblock %}

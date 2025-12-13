@@ -1,0 +1,152 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Historial de Pagos B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-history text-primary"></i> Historial de Pagos B2B
+            </h1>
+            <p class="text-muted mb-0">Pagos y cobros entre empresas</p>
+        </div>
+    </div>
+
+    <!-- KPIs del mes -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Pagos del Mes</h6>
+                            <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_pagos or 0) }}</h3>
+                        </div>
+                        <i class="fas fa-arrow-up fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Cobros del Mes</h6>
+                            <h3 class="mb-0">${{ '{:,.2f}'.format(totales.total_cobros or 0) }}</h3>
+                        </div>
+                        <i class="fas fa-arrow-down fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Flujo Neto</h6>
+                            {% set flujo = (totales.total_cobros or 0) - (totales.total_pagos or 0) %}
+                            <h3 class="mb-0">${{ '{:,.2f}'.format(flujo) }}</h3>
+                        </div>
+                        <i class="fas fa-exchange-alt fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de movimientos -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Movimientos</h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary active" onclick="filtrar('todos')">Todos</button>
+                    <button type="button" class="btn btn-outline-danger" onclick="filtrar('pago')">Pagos</button>
+                    <button type="button" class="btn btn-outline-success" onclick="filtrar('cobro')">Cobros</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if pagos %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tablaPagos">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Contraparte</th>
+                            <th>Método</th>
+                            <th>Referencia</th>
+                            <th class="text-end">Monto</th>
+                            <th>Registrado por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pagos %}
+                        <tr data-tipo="{{ p.tipo }}">
+                            <td>{{ p.fecha.strftime('%d/%m/%Y %H:%M') if p.fecha else '-' }}</td>
+                            <td>
+                                {% if p.tipo == 'pago' %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-arrow-up"></i> Pago
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-arrow-down"></i> Cobro
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ p.contraparte_nombre or '-' }}</td>
+                            <td>
+                                {% if p.metodo_pago == 'transferencia' %}
+                                <i class="fas fa-university"></i> Transferencia
+                                {% elif p.metodo_pago == 'efectivo' %}
+                                <i class="fas fa-money-bill"></i> Efectivo
+                                {% elif p.metodo_pago == 'cheque' %}
+                                <i class="fas fa-money-check"></i> Cheque
+                                {% else %}
+                                {{ p.metodo_pago }}
+                                {% endif %}
+                            </td>
+                            <td><small>{{ p.referencia or '-' }}</small></td>
+                            <td class="text-end fw-bold {% if p.tipo == 'pago' %}text-danger{% else %}text-success{% endif %}">
+                                {% if p.tipo == 'pago' %}-{% else %}+{% endif %}${{ '{:,.2f}'.format(p.monto or 0) }}
+                            </td>
+                            <td><small>{{ p.registrado_por_nombre or '-' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Sin movimientos</h4>
+                <p class="text-muted">Los pagos y cobros aparecerán aquí.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function filtrar(tipo) {
+    const filas = document.querySelectorAll('#tablaPagos tbody tr');
+    filas.forEach(fila => {
+        if (tipo === 'todos') {
+            fila.style.display = '';
+        } else {
+            fila.style.display = fila.dataset.tipo === tipo ? '' : 'none';
+        }
+    });
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %}

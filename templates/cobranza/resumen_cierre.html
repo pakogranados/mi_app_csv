@@ -1,0 +1,167 @@
+{% extends "sidebar.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <div class="card">
+    <div class="card-header bg-success text-white">
+      <h4 class="mb-0">✅ Turno #{{ turno.id }} - Resumen de Cierre</h4>
+      <small>Turno cerrado el {{ turno.fecha_cierre.strftime('%d/%m/%Y %H:%M') if turno.fecha_cierre else 'N/A' }}</small>
+    </div>
+    <div class="card-body">
+
+      <!-- SECCIÓN VENTAS -->
+      <h5 class="mb-3 text-primary">📊 VENTAS</h5>
+      <div class="table-responsive mb-4">
+        <table class="table table-sm table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">Inicial</th>
+              <th class="text-center">Consumos</th>
+              <th class="text-center">Mermas</th>
+              <th class="text-center">Final</th>
+              <th class="text-center">Vendidas</th>
+              <th class="text-end">Precio</th>
+              <th class="text-end">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in ventas_por_producto %}
+            <tr>
+              <td>{{ v.producto }}</td>
+              <td class="text-center">{{ "%.2f"|format(v.inicial) }}</td>
+              <td class="text-center">{{ "%.2f"|format(v.consumos) }}</td>
+              <td class="text-center">{{ "%.2f"|format(v.mermas) }}</td>
+              <td class="text-center">{{ "%.2f"|format(v.final) }}</td>
+              <td class="text-center"><strong>{{ "%.2f"|format(v.vendidas) }}</strong></td>
+              <td class="text-end">${{ "%.2f"|format(v.precio) }}</td>
+              <td class="text-end"><strong>${{ "%.2f"|format(v.importe) }}</strong></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted">Sin ventas registradas</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-success">
+            <tr>
+              <th colspan="7" class="text-end">TOTAL VENTAS:</th>
+              <th class="text-end">${{ "%.2f"|format(total_ventas) }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <hr>
+
+      <!-- SECCIÓN RETIROS, GASTOS Y COMPRAS -->
+      <h5 class="mb-3 text-danger">💸 RETIROS, GASTOS Y COMPRAS</h5>
+      <div class="table-responsive mb-4">
+        <table class="table table-sm">
+          <tbody>
+            <tr>
+              <td><strong>Retiros</strong></td>
+              <td class="text-end text-danger">-${{ "%.2f"|format(total_retiros) }}</td>
+            </tr>
+            <tr>
+              <td><strong>Gastos y Compras</strong></td>
+              <td class="text-end text-danger">-${{ "%.2f"|format(total_gastos) }}</td>
+            </tr>
+            <tr class="table-info">
+              <td><strong>Conteo Final de Caja</strong></td>
+              <td class="text-end"><strong>${{ "%.2f"|format(conteo_final) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr>
+
+      <!-- TOTAL CORTE -->
+      <div class="card mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body text-white">
+          <div class="row align-items-center">
+            <div class="col-6">
+              <h4 class="mb-0">💰 Total Corte de Turno</h4>
+            </div>
+            <div class="col-6 text-end">
+              <h2 class="mb-0">${{ "%.2f"|format(total_corte) }}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIFERENCIA (SOBRANTE/FALTANTE) -->
+      <div class="card mb-4 {% if diferencia >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-6">
+              <h4 class="mb-0">
+                {% if diferencia >= 0 %}
+                  ✅ SOBRANTE
+                {% else %}
+                  ⚠️ FALTANTE
+                {% endif %}
+              </h4>
+              <small>Efectivo esperado vs contado</small>
+            </div>
+            <div class="col-6 text-end">
+              <h2 class="mb-0">
+                {% if diferencia >= 0 %}
+                  +${{ "%.2f"|format(diferencia) }}
+                {% else %}
+                  -${{ "%.2f"|format(diferencia|abs) }}
+                {% endif %}
+              </h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desglose de la diferencia -->
+      <div class="alert alert-info">
+        <h6>📝 Explicación:</h6>
+        <ul class="mb-0">
+          <li><strong>Ventas totales:</strong> ${{ "%.2f"|format(total_ventas) }}</li>
+          <li><strong>Menos retiros:</strong> -${{ "%.2f"|format(total_retiros) }}</li>
+          <li><strong>Menos gastos/compras:</strong> -${{ "%.2f"|format(total_gastos) }}</li>
+          <li><strong>Efectivo esperado:</strong> ${{ "%.2f"|format(total_ventas - total_retiros - total_gastos) }}</li>
+          <li><strong>Efectivo contado:</strong> ${{ "%.2f"|format(conteo_final) }}</li>
+          <li class="mt-2">
+            <strong>
+              {% if diferencia >= 0 %}
+                Sobrante:
+              {% else %}
+                Faltante:
+              {% endif %}
+            </strong> 
+            <span class="{% if diferencia >= 0 %}text-success{% else %}text-danger{% endif %}">
+              ${{ "%.2f"|format(diferencia|abs) }}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Botones -->
+      <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="{{ url_for('apertura_turno') }}" class="btn btn-primary btn-lg">
+          🔓 Abrir Nuevo Turno
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-lg">
+          🖨️ Imprimir Resumen
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  .btn, .card-header, nav, .sidebar { display: none !important; }
+  body { background: white !important; }
+  .card { border: none !important; box-shadow: none !important; }
+}
+</style>
+
+{% endblock %}

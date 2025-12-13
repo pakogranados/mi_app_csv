@@ -1,0 +1,337 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Gestión de Usuarios - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-users-cog text-primary"></i> Gestión de Usuarios
+            </h1>
+            <p class="text-muted mb-0">Administra usuarios y sus asignaciones de área</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_areas') }}" class="btn btn-outline-primary">
+                <i class="fas fa-sitemap"></i> Ver Áreas
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+                <i class="fas fa-user-plus"></i> Agregar Usuario
+            </button>
+        </div>
+    </div>
+
+    <!-- Resumen en cards -->
+    <div class="row mb-4 g-3">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-warning bg-opacity-10">
+                <div class="card-body text-center py-3">
+                    <h3 class="mb-0 text-warning">{{ conteo.pendientes or 0 }}</h3>
+                    <small class="text-muted"><i class="fas fa-clock"></i> Pendientes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-info bg-opacity-10">
+                <div class="card-body text-center py-3">
+                    <h3 class="mb-0 text-info">{{ conteo.invitados or 0 }}</h3>
+                    <small class="text-muted"><i class="fas fa-envelope"></i> Invitados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-success bg-opacity-10">
+                <div class="card-body text-center py-3">
+                    <h3 class="mb-0 text-success">{{ conteo.activos or 0 }}</h3>
+                    <small class="text-muted"><i class="fas fa-check-circle"></i> Activos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-secondary bg-opacity-10">
+                <div class="card-body text-center py-3">
+                    <h3 class="mb-0 text-secondary">{{ total_areas or 0 }}</h3>
+                    <small class="text-muted"><i class="fas fa-sitemap"></i> Áreas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info del flujo -->
+    <div class="alert alert-light border mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            <small>
+                <strong>Flujo:</strong> 
+                <span class="badge bg-warning text-dark">1. Agregar</span> →
+                <span class="badge bg-primary">2. Asignar Área</span> →
+                <span class="badge bg-info">3. Invitación Enviada</span> →
+                <span class="badge bg-success">4. Usuario Activo</span>
+            </small>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="card">
+        <div class="card-header bg-white py-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <span class="fw-bold">{{ usuarios|length }} usuarios registrados</span>
+                </div>
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" 
+                           placeholder="Buscar..." id="buscarUsuario" style="width: 200px;">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tablaUsuarios">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Estado</th>
+                            <th>Áreas Asignadas</th>
+                            <th class="text-center" style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr class="usuario-row">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3 
+                                        {% if u.estado_registro == 'activo' %}bg-success
+                                        {% elif u.estado_registro == 'invitado' %}bg-info
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ u.nombre[0]|upper if u.nombre else '?' }}
+                                    </div>
+                                    <div>
+                                        <strong class="d-block">{{ u.nombre }}</strong>
+                                        <small class="text-muted">{{ u.correo }}</small>
+                                        {% if u.puesto %}
+                                        <br><small class="text-primary">{{ u.puesto }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if u.estado_registro == 'pendiente' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock"></i> Pendiente
+                                </span>
+                                <br><small class="text-muted">Sin área asignada</small>
+                                {% elif u.estado_registro == 'invitado' %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-envelope"></i> Invitado
+                                </span>
+                                <br><small class="text-muted">Esperando aceptación</small>
+                                {% elif u.estado_registro == 'activo' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Activo
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ u.estado_registro or 'N/A' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.areas_nombres %}
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for area in u.areas_nombres.split(', ')[:3] %}
+                                    <span class="badge bg-light text-dark border">{{ area }}</span>
+                                    {% endfor %}
+                                    {% if u.areas_nombres.split(', ')|length > 3 %}
+                                    <span class="badge bg-secondary">+{{ u.areas_nombres.split(', ')|length - 3 }}</span>
+                                    {% endif %}
+                                </div>
+                                {% elif u.num_areas and u.num_areas > 0 %}
+                                <span class="badge bg-success">{{ u.num_areas }} área(s)</span>
+                                {% else %}
+                                <span class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> Sin áreas
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+
+                                    <!-- Editar info (solo si no está activo) -->
+                                    {% if u.estado_registro in ['pendiente', 'invitado'] %}
+                                    <button class="btn btn-outline-secondary" 
+                                            onclick="editarUsuario({{ u.id }}, '{{ u.nombre|e }}', '{{ u.puesto|e if u.puesto else '' }}')"
+                                            title="Editar información">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+
+                                    <!-- Asignar / editar áreas -->
+                                    <a href="{{ url_for('admin_usuario_asignar_areas', usuario_id=u.id) }}" 
+                                    class="btn btn-outline-primary" title="Gestionar áreas">
+                                        <i class="fas fa-sitemap"></i>
+                                    </a>
+
+                                    <!-- Reenviar invitación -->
+                                    {% if u.estado_registro == 'invitado' %}
+                                    <form method="POST"
+                                        action="{{ url_for('admin_reenviar_invitacion', usuario_id=u.id) }}"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-outline-info" title="Reenviar invitación">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Eliminar (solo admin y no a sí mismo) -->
+                                    {% if session.get('rol') == 'admin' and u.id != session.get('usuario_id') %}
+                                    <form method="POST"
+                                        action="{{ url_for('admin_eliminar_usuario', usuario_id=u.id) }}"
+                                        class="d-inline"
+                                        onsubmit="return confirm('¿Eliminar a {{ u.nombre }}?');">
+                                        <button type="submit" class="btn btn-outline-danger" title="Eliminar usuario">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                </div>
+                            </td>
+
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <i class="fas fa-users fa-3x mb-3 d-block opacity-25"></i>
+                                <p class="mb-3">No hay usuarios registrados</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+                                    <i class="fas fa-user-plus"></i> Agregar Primer Usuario
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta usuarios sin área -->
+    {% set sin_area = usuarios|selectattr('num_areas', 'equalto', 0)|list if usuarios else [] %}
+    {% if sin_area|length > 0 %}
+    <div class="alert alert-warning mt-4 d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <div>
+            <strong>Atención:</strong> {{ sin_area|length }} usuario(s) sin áreas asignadas.
+            <a href="{{ url_for('admin_areas') }}" class="alert-link">Asignar ahora →</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Agregar Usuario -->
+<div class="modal fade" id="modalAgregar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin_agregar_usuario') }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus"></i> Agregar Usuario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                        <input type="email" name="correo" class="form-control" required 
+                               placeholder="usuario@correo.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                        <input type="text" name="nombre" class="form-control" required 
+                               placeholder="Juan Pérez">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Puesto</label>
+                        <input type="text" name="puesto" class="form-control" 
+                               placeholder="Ej: Vendedor, Almacenista...">
+                    </div>
+                    <div class="alert alert-light border-0 bg-light">
+                        <small>
+                            <i class="fas fa-lightbulb text-warning"></i>
+                            El usuario quedará <strong>Pendiente</strong> hasta que le asignes un área.
+                            Al asignar, recibirá un correo de invitación automáticamente.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Agregar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="formEditar">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Usuario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" name="nombre" id="editNombre" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Puesto</label>
+                        <input type="text" name="puesto" id="editPuesto" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+}
+</style>
+
+<script>
+// Editar usuario
+function editarUsuario(id, nombre, puesto) {
+    document.getElementById('formEditar').action = `/admin/usuarios/${id}/editar`;
+    document.getElementById('editNombre').value = nombre;
+    document.getElementById('editPuesto').value = puesto || '';
+    new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+
+// Buscador de usuarios
+document.getElementById('buscarUsuario')?.addEventListener('input', function(e) {
+    const filtro = e.target.value.toLowerCase();
+    document.querySelectorAll('.usuario-row').forEach(row => {
+        const texto = row.textContent.toLowerCase();
+        row.style.display = texto.includes(filtro) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

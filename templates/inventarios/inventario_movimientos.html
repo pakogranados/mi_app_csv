@@ -1,0 +1,107 @@
+{% extends "sidebar.html" %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Movimientos · {{ producto }}</h4>
+    <a class="btn btn-secondary"
+       href="{{ url_for(back_endpoint) if back_endpoint else url_for('mostrar_inventario_mp') }}">
+      Volver
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">Unidades</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Documento</th>
+                <th>Fuente</th>
+                <th class="text-end">Entrada</th>
+                <th class="text-end">Salida</th>
+                <th class="text-end">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in tabla_unidades %}
+              <tr>
+                <td>{{ r.fecha }}</td>
+                <td>{{ r.documento }}</td>
+                <td>{{ r.fuente }}</td>
+                <td class="text-end">{{ '%.2f'|format(r.entrada|float) }}</td>
+                <td class="text-end">{{ '%.2f'|format(r.salida|float) }}</td>
+                <td class="text-end">{{ '%.2f'|format(r.saldo|float) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted">Sin movimientos</td></tr>
+              {% endfor %}
+              
+              {# ✅ FILA DE TOTALES #}
+              {% if tabla_unidades %}
+              <tr class="table-info fw-bold">
+                <td colspan="3" class="text-end">TOTALES</td>
+                <td class="text-end">{{ '%.2f'|format(total_entradas_u|float) }}</td>
+                <td class="text-end">{{ '%.2f'|format(total_salidas_u|float) }}</td>
+                <td class="text-end">{{ '%.2f'|format(saldo_final_u|float) }}</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">Pesos (MXN)</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Documento</th>
+                <th>Fuente</th>
+                <th class="text-end">Entrada</th>
+                <th class="text-end">Salida</th>
+                <th class="text-end">Saldo</th>
+                <th class="text-end">P. Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in tabla_pesos %}
+              <tr>
+                <td>{{ r.fecha }}</td>
+                <td>{{ r.documento }}</td>
+                <td>{{ r.fuente }}</td>
+                <td class="text-end">${{ '%.2f'|format(r.entrada|float) }}</td>
+                <td class="text-end">${{ '%.2f'|format(r.salida|float) }}</td>
+                <td class="text-end">${{ '%.2f'|format(r.saldo|float) }}</td>
+                <td class="text-end">
+                  {% if r.pu is not none %}${{ '%.4f'|format(r.pu|float) }}{% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-muted">Sin movimientos</td></tr>
+              {% endfor %}
+              
+              {# ✅ FILA DE TOTALES #}
+              {% if tabla_pesos %}
+              <tr class="table-info fw-bold">
+                <td colspan="3" class="text-end">TOTALES</td>
+                <td class="text-end">${{ '%.2f'|format(total_entradas_mx|float) }}</td>
+                <td class="text-end">${{ '%.2f'|format(total_salidas_mx|float) }}</td>
+                <td class="text-end">${{ '%.2f'|format(saldo_final_mx|float) }}</td>
+                <td class="text-end">${{ '%.4f'|format(pu_final|float) }}</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

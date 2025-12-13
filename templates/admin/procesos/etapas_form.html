@@ -1,0 +1,29 @@
+{% extends "sidebar.html" %}{% block content %}
+<h5>Etapas de {{ proceso.nombre }}</h5>
+<form method="post" class="row g-2 mb-3">
+  <div class="col-2"><input type="number" min="1" name="orden" class="form-control" placeholder="Orden" required></div>
+  <div class="col-3">
+    <select name="area_id" class="form-select" required>
+      <option value="">Área</option>
+      {% for a in areas %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-3"><input name="nombre" class="form-control" placeholder="Nombre etapa"></div>
+  <div class="col-3"><input name="descripcion" class="form-control" placeholder="Descripción"></div>
+  <div class="col-1"><button class="btn btn-primary w-100">+</button></div>
+</form>
+<table class="table table-sm">
+  <thead><tr><th>Orden</th><th>Etapa</th><th>Área</th><th>Receta</th></tr></thead>
+  <tbody>
+    {% for e in etapas %}
+    <tr>
+      <td>{{ e.orden }}</td>
+      <td>{{ e.nombre }}</td>
+      <td>{{ e.area }}</td>
+      <td><a class="btn btn-sm btn-outline-primary"
+             href="{{ url_for('etapa_receta', etapa_id=e.id) }}">Editar receta</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

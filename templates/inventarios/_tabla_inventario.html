@@ -1,0 +1,61 @@
+<table id="tabla-inventario" class="table table-bordered table-striped">
+  <thead>
+    <tr>
+      <th class="text-center" style="width:70px">ID</th>
+      <th>Producto</th>
+      <th class="text-end" style="width:140px">Inventario Inicial</th>
+      <th class="text-end" style="width:120px">Entradas</th>
+      <th class="text-end" style="width:120px">Salidas</th>
+      <th class="text-end" style="width:120px">Disponible</th>
+      <th class="text-end" style="width:160px">Valor Inventario</th>
+      <th class="text-center" style="width:90px">Aprobado</th>
+      <th class="text-center" style="width:140px">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in inventario %}
+    <tr>
+      <td class="text-center">{{ i.id }}</td>
+      <td>{{ i.producto }}</td>
+      <td class="text-end">{{ i.inventario_inicial }}</td>
+
+      <!-- Entradas (MP = almacen 1) -->
+      <td class="text-end">
+        {% if i.mercancia_id %}
+          <a class="btn btn-sm btn-outline-info"
+             href="{{ url_for('inventario_movimientos', mercancia_id=i.mercancia_id, almacen=1) }}">
+            {{ i.entradas }}
+          </a>
+        {% else %}
+          <span class="text-muted">{{ i.entradas }}</span>
+        {% endif %}
+      </td>
+
+      <!-- Salidas (MP = almacen 1) -->
+      <td class="text-end">
+        {% if i.mercancia_id %}
+          <a class="btn btn-sm btn-outline-secondary"
+             href="{{ url_for('inventario_movimientos', mercancia_id=i.mercancia_id, almacen=1) }}">
+            {{ i.salidas }}
+          </a>
+        {% else %}
+          <span class="text-muted">{{ i.salidas }}</span>
+        {% endif %}
+      </td>
+
+      <td class="text-end">{{ i.disponible }}</td>
+      <td class="text-end">${{ '%.2f'|format(i.valor_inventario or 0) }}</td>
+      <td class="text-center">{{ 'Sí' if i.aprobado else 'No' }}</td>
+
+      <td class="text-center">
+        {% if i.mercancia_id %}
+          <a href="{{ url_for('inventario_movimientos', mercancia_id=i.mercancia_id, almacen=1) }}"
+             class="btn btn-sm btn-info">Movimientos</a>
+        {% else %}
+          <button class="btn btn-sm btn-info" disabled>Movimientos</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

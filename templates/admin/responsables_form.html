@@ -1,0 +1,46 @@
+{% extends "sidebar.html" %}
+{% block title %}Alta de Responsables de Área{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h3 class="mb-4">Nuevo Responsable de Área</h3>
+
+    <form method="POST" action="{{ url_for('nuevo_responsable') }}">
+        <div class="mb-3">
+            <label class="form-label">Área de Producción</label>
+            <select class="form-select" name="area_id" required>
+                {% for a in areas %}
+                <option value="{{ a.id }}">{{ a.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Rol</label>
+            <input type="text" class="form-control" name="rol" placeholder="Ej: Almacenista" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Jefe Directo</label>
+            <input type="text" class="form-control" name="jefe_directo">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-control" name="nombre" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            <input type="text" class="form-control" name="telefono">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" class="form-control" name="correo">
+        </div>
+
+        <button type="submit" class="btn btn-success">Guardar Responsable</button>
+    </form>
+</div>
+{% endblock %}

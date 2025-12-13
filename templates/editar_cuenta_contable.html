@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Cuenta Contable</title>
+</head>
+
+<body>
+    <h2>Editar Cuenta Contable</h2>
+
+    <form method="POST">
+        <label for="nombre">Nombre:</label>
+        <input type="text" name="nombre" value="{{ cuenta.nombre }}" required><br><br>
+
+        <label for="numero_cuenta">Número de Cuenta:</label>
+        <input type="text" name="numero_cuenta" value="{{ cuenta.numero_cuenta }}" required><br><br>
+
+        <label for="tipo">Tipo:</label>
+        <select name="tipo" required>
+            <option value="cuenta" {% if cuenta.tipo=='cuenta' %}selected{% endif %}>Cuenta</option>
+            <option value="subcuenta" {% if cuenta.tipo=='subcuenta' %}selected{% endif %}>Subcuenta</option>
+        </select><br><br>
+
+        <button type="submit">Guardar cambios</button>
+    </form>
+
+    <br>
+    <a href="/cuentas_contables">← Volver</a>
+    <a href="{{ url_for('editar_cuenta_contable', id=cuenta.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+</body>
+
+</html>

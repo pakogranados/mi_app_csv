@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Inventario de Productos Terminados</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Entradas (Producción)</th>
+            <th>Salidas (Ventas)</th>
+            <th>Disponible</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for prod in productos %}
+        <tr>
+            <td>{{ prod.nombre }}</td>
+            <td>{{ prod.entradas }}</td>
+            <td>{{ prod.salidas }}</td>
+            <td>{{ prod.disponible }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

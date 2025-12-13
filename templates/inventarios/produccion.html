@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Producción en Proceso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="container py-4">
+
+    <h2 class="mb-4">Producción en Proceso</h2>
+
+    <form method="POST" action="">
+        <div class="mb-3">
+            <label class="form-label">Fecha de Producción</label>
+            <input type="date" name="fecha" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Producto a Fabricar</label>
+            <select name="producto_id" class="form-select" required>
+                {% for producto in productos_terminados %}
+                    <option value="{{ producto.id }}">{{ producto.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <h4 class="mt-4">Materias Primas a Consumir</h4>
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Materia Prima</th>
+                    <th>Unidades a Usar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mp in materias_primas %}
+                <tr>
+                    <td>{{ mp.nombre }}</td>
+                    <td>
+                        <input type="number" step="0.01" name="usos[{{ mp.id }}]" class="form-control">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-primary">Registrar Producción</button>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

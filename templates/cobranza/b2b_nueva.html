@@ -1,0 +1,361 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Emitir Factura B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">🏢 Emitir Factura B2B</h1>
+            <p class="text-muted small mb-0">Facturación entre empresas del ERP</p>
+        </div>
+        <a href="{{ url_for('facturacion_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" id="formFactura">
+        <div class="row">
+            <!-- Columna Izquierda - Datos de Factura -->
+            <div class="col-lg-8">
+                <!-- Datos del Cliente -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-building me-2 text-primary"></i>Empresa Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-medium">Seleccionar Empresa Cliente <span class="text-danger">*</span></label>
+                                <select class="form-select" name="empresa_receptora_id" id="empresaCliente" required>
+                                    <option value="">-- Selecciona una empresa --</option>
+                                    {% for e in empresas_disponibles %}
+                                    <option value="{{ e.id }}" data-rfc="{{ e.rfc }}">{{ e.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">RFC</label>
+                                <input type="text" class="form-control" id="rfcCliente" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Productos -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-boxes me-2 text-success"></i>Productos</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Agregar Producto -->
+                        <div class="row g-2 mb-3 p-3 bg-light rounded">
+                            <div class="col-md-5">
+                                <select class="form-select" id="productoSelect">
+                                    <option value="">-- Seleccionar producto --</option>
+                                    {% for p in productos %}
+                                    <option value="{{ p.id }}" 
+                                            data-nombre="{{ p.nombre }}" 
+                                            data-precio="{{ p.precio or 0 }}">
+                                        {{ p.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control" id="cantidadInput" placeholder="Cant" step="0.001" value="1">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control" id="precioInput" placeholder="Precio" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="ivaSelect">
+                                    <option value="0.16" selected>IVA 16%</option>
+                                    <option value="0">IVA 0%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-success w-100" onclick="agregarProducto()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Productos -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="tablaProductos">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th class="text-center" style="width: 100px;">Cantidad</th>
+                                        <th class="text-end" style="width: 120px;">P. Unitario</th>
+                                        <th class="text-center" style="width: 80px;">IVA</th>
+                                        <th class="text-end" style="width: 120px;">Importe</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyProductos">
+                                    <tr id="sinProductos">
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-box-open fa-2x mb-2"></i>
+                                            <p class="mb-0">Agrega productos a la factura</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Inputs ocultos para enviar productos -->
+                        <div id="productosHidden"></div>
+                    </div>
+                </div>
+
+                <!-- Condiciones -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-file-contract me-2 text-info"></i>Condiciones</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Forma de Pago</label>
+                                <select class="form-select" name="forma_pago">
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Método de Pago</label>
+                                <select class="form-select" name="metodo_pago">
+                                    <option value="PUE">PUE - Pago en una sola exhibición</option>
+                                    <option value="PPD">PPD - Pago en parcialidades</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Fecha Vencimiento</label>
+                                <input type="date" class="form-control" name="fecha_vencimiento">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Condiciones de Pago</label>
+                                <input type="text" class="form-control" name="condiciones_pago" placeholder="Ej: 30 días crédito">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha - Resumen -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-calculator me-2"></i>Resumen</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Empresa Emisora -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <small class="text-muted">Empresa Emisora:</small>
+                            <h6 class="fw-bold mb-0">{{ empresa_actual.nombre }}</h6>
+                            <small class="text-muted">RFC: {{ empresa_actual.rfc or 'N/A' }}</small>
+                        </div>
+
+                        <!-- Totales -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal:</span>
+                            <span class="fw-medium" id="subtotalDisplay">$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">IVA:</span>
+                            <span class="fw-medium" id="ivaDisplay">$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-4">
+                            <span class="fs-5 fw-bold">Total:</span>
+                            <span class="fs-4 fw-bold text-success" id="totalDisplay">$0.00</span>
+                        </div>
+
+                        <!-- Inputs ocultos para totales -->
+                        <input type="hidden" name="subtotal" id="subtotalInput" value="0">
+                        <input type="hidden" name="iva" id="ivaInput" value="0">
+                        <input type="hidden" name="total" id="totalInput" value="0">
+
+                        <!-- Botones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="btnEmitir" disabled>
+                                <i class="fas fa-paper-plane me-2"></i>Emitir Factura
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="limpiarFactura()">
+                                <i class="fas fa-trash me-2"></i>Limpiar Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let productos = [];
+let contadorProductos = 0;
+
+// Actualizar RFC al seleccionar empresa
+document.getElementById('empresaCliente').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    document.getElementById('rfcCliente').value = option.dataset.rfc || '';
+    validarFormulario();
+});
+
+// Actualizar precio al seleccionar producto
+document.getElementById('productoSelect').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    document.getElementById('precioInput').value = option.dataset.precio || '';
+});
+
+function agregarProducto() {
+    const select = document.getElementById('productoSelect');
+    const cantidad = parseFloat(document.getElementById('cantidadInput').value) || 0;
+    const precio = parseFloat(document.getElementById('precioInput').value) || 0;
+    const ivaRate = parseFloat(document.getElementById('ivaSelect').value);
+    
+    if (!select.value || cantidad <= 0 || precio <= 0) {
+        alert('Selecciona un producto y completa cantidad y precio');
+        return;
+    }
+    
+    const option = select.options[select.selectedIndex];
+    const producto = {
+        id: contadorProductos++,
+        mercancia_id: select.value,
+        nombre: option.dataset.nombre,
+        cantidad: cantidad,
+        precio: precio,
+        iva_rate: ivaRate,
+        importe: cantidad * precio
+    };
+    
+    productos.push(producto);
+    renderTabla();
+    limpiarInputsProducto();
+    calcularTotales();
+    validarFormulario();
+}
+
+function eliminarProducto(id) {
+    productos = productos.filter(p => p.id !== id);
+    renderTabla();
+    calcularTotales();
+    validarFormulario();
+}
+
+function renderTabla() {
+    const tbody = document.getElementById('tbodyProductos');
+    const sinProductos = document.getElementById('sinProductos');
+    
+    if (productos.length === 0) {
+        tbody.innerHTML = `
+            <tr id="sinProductos">
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="fas fa-box-open fa-2x mb-2"></i>
+                    <p class="mb-0">Agrega productos a la factura</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = productos.map(p => `
+        <tr>
+            <td>${p.nombre}</td>
+            <td class="text-center">${p.cantidad.toFixed(3)}</td>
+            <td class="text-end">$${p.precio.toFixed(2)}</td>
+            <td class="text-center">${(p.iva_rate * 100).toFixed(0)}%</td>
+            <td class="text-end fw-medium">$${p.importe.toFixed(2)}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${p.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Actualizar inputs ocultos
+    const hiddenDiv = document.getElementById('productosHidden');
+    hiddenDiv.innerHTML = productos.map((p, i) => `
+        <input type="hidden" name="productos[${i}][mercancia_id]" value="${p.mercancia_id}">
+        <input type="hidden" name="productos[${i}][descripcion]" value="${p.nombre}">
+        <input type="hidden" name="productos[${i}][cantidad]" value="${p.cantidad}">
+        <input type="hidden" name="productos[${i}][precio]" value="${p.precio}">
+        <input type="hidden" name="productos[${i}][iva_rate]" value="${p.iva_rate}">
+        <input type="hidden" name="productos[${i}][importe]" value="${p.importe}">
+    `).join('');
+}
+
+function calcularTotales() {
+    let subtotal = 0;
+    let iva = 0;
+    
+    productos.forEach(p => {
+        subtotal += p.importe;
+        iva += p.importe * p.iva_rate;
+    });
+    
+    const total = subtotal + iva;
+    
+    document.getElementById('subtotalDisplay').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('ivaDisplay').textContent = '$' + iva.toFixed(2);
+    document.getElementById('totalDisplay').textContent = '$' + total.toFixed(2);
+    
+    document.getElementById('subtotalInput').value = subtotal.toFixed(2);
+    document.getElementById('ivaInput').value = iva.toFixed(2);
+    document.getElementById('totalInput').value = total.toFixed(2);
+}
+
+function limpiarInputsProducto() {
+    document.getElementById('productoSelect').value = '';
+    document.getElementById('cantidadInput').value = '1';
+    document.getElementById('precioInput').value = '';
+    document.getElementById('productoSelect').focus();
+}
+
+function limpiarFactura() {
+    if (confirm('¿Limpiar toda la factura?')) {
+        productos = [];
+        renderTabla();
+        calcularTotales();
+        document.getElementById('empresaCliente').value = '';
+        document.getElementById('rfcCliente').value = '';
+        validarFormulario();
+    }
+}
+
+function validarFormulario() {
+    const empresa = document.getElementById('empresaCliente').value;
+    const tieneProductos = productos.length > 0;
+    document.getElementById('btnEmitir').disabled = !(empresa && tieneProductos);
+}
+
+// Confirmar antes de enviar
+document.getElementById('formFactura').addEventListener('submit', function(e) {
+    if (!confirm('¿Emitir esta factura? Se enviará a la empresa cliente para su revisión.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

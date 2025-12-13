@@ -1,0 +1,171 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Notificaciones - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-bell text-primary"></i> Notificaciones
+            </h1>
+            <p class="text-muted mb-0">Mensajes y avisos del sistema</p>
+        </div>
+        {% if no_leidos > 0 %}
+        <span class="badge bg-danger fs-6">{{ no_leidos }} sin leer</span>
+        {% endif %}
+    </div>
+
+    <!-- Lista de mensajes -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if mensajes %}
+            <div class="list-group list-group-flush">
+                {% for m in mensajes %}
+                <div class="list-group-item list-group-item-action {% if not m.leida %}bg-light{% endif %}" 
+                     id="mensaje-{{ m.id }}"
+                     style="cursor: pointer;"
+                     onclick="verMensaje({{ m.id }}, '{{ m.titulo|e }}')">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="d-flex">
+                            <!-- Icono según tipo -->
+                            <div class="me-3">
+                                {% if m.tipo == 'bienvenida' %}
+                                <span class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" 
+                                      style="width: 45px; height: 45px;">
+                                    <i class="fas fa-hand-sparkles"></i>
+                                </span>
+                                {% elif m.tipo == 'asignacion' %}
+                                <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                                      style="width: 45px; height: 45px;">
+                                    <i class="fas fa-user-tag"></i>
+                                </span>
+                                {% elif m.tipo == 'alerta' %}
+                                <span class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center" 
+                                      style="width: 45px; height: 45px;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                {% elif m.tipo == 'sistema' %}
+                                <span class="rounded-circle bg-info text-white d-inline-flex align-items-center justify-content-center" 
+                                      style="width: 45px; height: 45px;">
+                                    <i class="fas fa-cog"></i>
+                                </span>
+                                {% else %}
+                                <span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" 
+                                      style="width: 45px; height: 45px;">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Contenido -->
+                            <div>
+                                <h6 class="mb-1 {% if not m.leida %}fw-bold{% endif %}">
+                                    {% if m.importante %}
+                                    <i class="fas fa-star text-warning me-1"></i>
+                                    {% endif %}
+                                    {{ m.titulo }}
+                                </h6>
+                                
+                                <!-- Vista previa del mensaje -->
+                                <div class="text-muted small mb-2">
+                                    {{ m.mensaje|striptags|truncate(120) }}
+                                </div>
+                                
+                                <!-- Mensaje completo (oculto) -->
+                                <div class="mensaje-completo d-none" id="contenido-{{ m.id }}">
+                                    {{ m.mensaje|safe }}
+                                </div>
+                                
+                                <small class="text-muted">
+                                    {% if m.origen_nombre %}
+                                    <i class="fas fa-user"></i> {{ m.origen_nombre }} · 
+                                    {% endif %}
+                                    <i class="fas fa-clock"></i> {{ m.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Indicador no leído -->
+                        <div>
+                            {% if not m.leida %}
+                            <span class="badge bg-primary rounded-pill badge-{{ m.id }}">Nuevo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Sin notificaciones</h4>
+                <p class="text-muted">Aquí aparecerán tus mensajes y avisos del sistema.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver mensaje completo -->
+<div class="modal fade" id="modalMensaje" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitulo"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContenido">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function verMensaje(id, titulo) {
+    const contenido = document.getElementById('contenido-' + id).innerHTML;
+    
+    document.getElementById('modalTitulo').textContent = titulo;
+    document.getElementById('modalContenido').innerHTML = contenido;
+    
+    new bootstrap.Modal(document.getElementById('modalMensaje')).show();
+    
+    // Marcar como leído
+    fetch(`/notificaciones/${id}/leer`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Quitar estilos de no leído
+                const item = document.getElementById('mensaje-' + id);
+                item.classList.remove('bg-light');
+                
+                const badge = document.querySelector('.badge-' + id);
+                if (badge) badge.remove();
+                
+                // Actualizar contador en sidebar
+                actualizarContador();
+            }
+        });
+}
+
+function actualizarContador() {
+    fetch('/api/notificaciones/count')
+        .then(response => response.json())
+        .then(data => {
+            const badges = document.querySelectorAll('.notificaciones-badge');
+            badges.forEach(badge => {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+        });
+}
+</script>
+{% endblock %}

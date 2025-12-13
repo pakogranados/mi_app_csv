@@ -1,0 +1,263 @@
+{% extends "sidebar.html" %}
+{% block title %}Incidencia {{ incidencia.codigo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>
+      <i class="fas fa-clipboard-list text-primary"></i> 
+      Incidencia {{ incidencia.codigo or '#' + incidencia.id|string }}
+    </h3>
+    <div>
+      <a href="{{ url_for('wip.centro_incidencias') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Columna principal -->
+    <div class="col-lg-8">
+      <!-- Información General -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información General</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="text-muted small">Área:</label>
+              <p class="mb-0"><strong>{{ incidencia.area_nombre }}</strong></p>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Estado Actual:</label>
+              <p class="mb-0">
+                <span class="badge bg-{{ semaforo.clase }} fs-6">
+                  {% if semaforo.color == 'verde' %}🟢
+                  {% elif semaforo.color == 'amarillo' %}🟡
+                  {% elif semaforo.color == 'rojo' %}🔴
+                  {% else %}⚪{% endif %}
+                  {{ semaforo.texto }}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="text-muted small">Responsable:</label>
+              <p class="mb-0"><strong>{{ incidencia.responsable_nombre }}</strong></p>
+              <small class="text-muted">
+                {% if incidencia.responsable_email %}📧 {{ incidencia.responsable_email }}{% endif %}
+              </small>
+            </div>
+            <div class="col-md-4">
+              <label class="text-muted small">Prioridad:</label>
+              <p class="mb-0">
+                <span class="badge bg-{{ 'danger' if incidencia.prioridad == 'urgente' else 'warning' if incidencia.prioridad == 'alta' else 'secondary' }}">
+                  {{ incidencia.prioridad|upper }}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-4">
+              <label class="text-muted small">Severidad:</label>
+              <p class="mb-0">
+                <span class="badge bg-{{ 'danger' if incidencia.severidad == 'critica' else 'warning' if incidencia.severidad == 'alta' else 'info' if incidencia.severidad == 'media' else 'secondary' }}">
+                  {{ incidencia.severidad|upper }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-align-left"></i> Descripción de la Incidencia</h5>
+        </div>
+        <div class="card-body">
+          <h6>{{ incidencia.titulo }}</h6>
+          <p class="mb-0" style="white-space: pre-wrap;">{{ incidencia.descripcion_tarea or 'Sin descripción detallada' }}</p>
+        </div>
+      </div>
+
+      <!-- Línea de Tiempo -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning">
+          <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Línea de Tiempo</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-borderless">
+              <thead>
+                <tr>
+                  <th>Asignación</th>
+                  <th>Cumplimiento</th>
+                  <th>Revisión</th>
+                  <th>Resuelta</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    {% if incidencia.fecha_asignacion %}
+                      ✅ {{ incidencia.fecha_asignacion.strftime('%d/%b/%Y %H:%M') }}
+                      {% if incidencia.asignador_nombre %}
+                        <br><small class="text-muted">Por: {{ incidencia.asignador_nombre }}</small>
+                      {% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if incidencia.fecha_cumplimiento %}
+                      {% set vencida = incidencia.fecha_cumplimiento < now.date() %}
+                      <span class="{{ 'text-danger fw-bold' if vencida else '' }}">
+                        {{ '⚠️' if vencida else '📅' }} {{ incidencia.fecha_cumplimiento.strftime('%d/%b/%Y') }}
+                      </span>
+                      {% if vencida %}
+                        <br><small class="text-danger">VENCIDA</small>
+                      {% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if incidencia.fecha_revision %}
+                      ✅ {{ incidencia.fecha_revision.strftime('%d/%b/%Y %H:%M') }}
+                      {% if incidencia.revisor_nombre %}
+                        <br><small class="text-muted">Por: {{ incidencia.revisor_nombre }}</small>
+                      {% endif %}
+                    {% else %}
+                      - Pendiente
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if incidencia.fecha_completado %}
+                      ✅ {{ incidencia.fecha_completado.strftime('%d/%b/%Y %H:%M') }}
+                    {% else %}
+                      - Pendiente
+                    {% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <hr>
+
+          <div class="row">
+            <div class="col-md-4">
+              <small class="text-muted">Tiempo Estimado:</small>
+              <p class="mb-0"><strong>{{ incidencia.tiempo_estimado or '?' }} minutos</strong></p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Tiempo Transcurrido:</small>
+              <p class="mb-0">
+                <strong class="text-{{ semaforo.clase }}">
+                  {{ incidencia.tiempo_transcurrido or 0 }} minutos
+                </strong>
+              </p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Progreso:</small>
+              <p class="mb-0">
+                <strong class="text-{{ semaforo.clase }}">
+                  {{ incidencia.porcentaje_tiempo|int }}% del tiempo estimado
+                </strong>
+              </p>
+            </div>
+          </div>
+
+          <div class="progress mt-3" style="height: 20px;">
+            <div class="progress-bar bg-{{ semaforo.clase }}" 
+                 role="progressbar" 
+                 style="width: {{ [[incidencia.porcentaje_tiempo|default(0)|int, 100]|max, 200]|min }}%">
+              {{ incidencia.porcentaje_tiempo|int }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bitácora -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="fas fa-history"></i> Bitácora de Eventos</h5>
+        </div>
+        <div class="card-body">
+          {% if bitacora %}
+          <div class="timeline">
+            {% for evento in bitacora %}
+            <div class="mb-3">
+              <div class="d-flex">
+                <div class="me-3">
+                  <span class="badge bg-{{ 
+                    'success' if evento.accion in ('completado', 'aprobado') else
+                    'primary' if evento.accion == 'iniciado' else
+                    'danger' if evento.accion == 'rechazado' else
+                    'secondary'
+                  }}">
+                    {{ evento.accion|upper }}
+                  </span>
+                </div>
+                <div class="flex-grow-1">
+                  <small class="text-muted">
+                    {{ evento.fecha_accion.strftime('%d/%b/%Y %H:%M') }} - {{ evento.usuario_nombre }}
+                  </small>
+                  {% if evento.comentario %}
+                  <p class="mb-0 mt-1">💬 "{{ evento.comentario }}"</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">No hay eventos registrados aún.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna lateral -->
+    <div class="col-lg-4">
+      <!-- Acciones -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-bolt"></i> Acciones</h5>
+        </div>
+        <div class="card-body">
+          <button class="btn btn-outline-secondary w-100 mb-2">
+            <i class="fas fa-comment"></i> Agregar Comentario
+          </button>
+
+          <button class="btn btn-outline-info w-100 mb-2">
+            <i class="fas fa-phone"></i> Contactar Responsable
+          </button>
+
+          {% if semaforo.color in ('amarillo', 'rojo') %}
+          <button class="btn btn-outline-danger w-100">
+            <i class="fas fa-exclamation-triangle"></i> Solicitar Ayuda
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Archivos Adjuntos -->
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-paperclip"></i> Archivos Adjuntos</h6>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Funcionalidad en desarrollo</p>
+          <button class="btn btn-outline-primary btn-sm w-100">
+            <i class="fas fa-upload"></i> Subir Archivo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

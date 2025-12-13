@@ -1,0 +1,73 @@
+{% extends "sidebar.html" %}{% block content %}
+<h4 class="mb-2">Proceso: {{ p.nombre }}</h4>
+<p class="text-muted">{{ p.descripcion or 'Sin descripción' }}</p>
+
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-comp">Componentes</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-op">Operaciones</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-by">Subproductos</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-misc">Misceláneo</button></li>
+</ul>
+
+<div class="tab-content pt-3">
+  <!-- Componentes -->
+  <div class="tab-pane fade show active" id="tab-comp">
+    <div class="d-flex justify-content-end mb-2">
+      <a class="btn btn-primary btn-sm" href="{{ url_for('editar_proceso', proceso_id=p.id) }}">Editar</a>
+    </div>
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Componente</th><th>Unidad</th><th>Cantidad</th><th>Merma %</th><th>Costo ref</th></tr></thead>
+      <tbody>
+        {% for c in componentes %}
+        <tr>
+          <td>{{ c.componente }}</td>
+          <td>{{ c.unidad }}</td>
+          <td>{{ c.cantidad }}</td>
+          <td>{{ c.merma_pct or 0 }}</td>
+          <td>{{ c.costo_ref is not none and ('$%.2f'|format(c.costo_ref)) or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Operaciones -->
+  <div class="tab-pane fade" id="tab-op">
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Operación</th><th>Tiempo (min)</th><th>Área</th></tr></thead>
+      <tbody>
+        {% for o in operaciones %}
+        <tr>
+          <td>{{ o.nombre_operacion }}</td>
+          <td>{{ o.tiempo_min }}</td>
+          <td>{{ o.area_id }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Subproductos -->
+  <div class="tab-pane fade" id="tab-by">
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Nombre</th><th>Unidad</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for s in subproductos %}
+        <tr>
+          <td>{{ s.nombre }}</td>
+          <td>{{ s.unidad }}</td>
+          <td>{{ s.cantidad }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Misc -->
+  <div class="tab-pane fade" id="tab-misc">
+    <p class="text-muted">Notas, adjuntos, responsables, etc.</p>
+  </div>
+</div>
+
+<a class="btn btn-link mt-3" href="{{ url_for('listar_procesos') }}">Volver</a>
+{% endblock %}

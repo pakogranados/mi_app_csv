@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Movimientos de Inventario</h2>
+
+    {% if movimientos %}
+    <table class="table table-striped mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Costo Unitario</th>
+                <th>Referencia</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mov in movimientos %}
+            <tr>
+                <td>{{ mov.id }}</td>
+                <td>
+                    {% if mov.tipo == 'entrada' %}
+                        <span class="badge bg-success">Entrada</span>
+                    {% else %}
+                        <span class="badge bg-danger">Salida</span>
+                    {% endif %}
+                </td>
+                <td>{{ mov.cantidad }}</td>
+                <td>${{ "%.2f"|format(mov.costo_unitario) }}</td>
+                <td>{{ mov.referencia or '—' }}</td>
+                <td>{{ mov.fecha }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">No hay movimientos registrados para este producto.</div>
+    {% endif %}
+
+    <a href="{{ url_for('listar_inventario') }}" class="btn btn-secondary mt-3">⬅ Volver al Inventario</a>
+</div>
+{% endblock %}

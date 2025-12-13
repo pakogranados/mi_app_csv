@@ -1,0 +1,136 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Reporte de Deudas B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-money-check-alt text-danger"></i> Antigüedad de Deudas
+            </h1>
+            <p class="text-muted mb-0">Cuentas por pagar a proveedores B2B</p>
+        </div>
+        <div>
+            <a href="{{ url_for('reportes_b2b') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.total or 0) }}</h4>
+                    <small>Total Deuda</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.vigente or 0) }}</h4>
+                    <small>Vigente</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.vencido_1_30 or 0) }}</h4>
+                    <small>1-30 días</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-orange text-white" style="background-color: #fd7e14;">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.vencido_31_60 or 0) }}</h4>
+                    <small>31-60 días</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.vencido_61_90 or 0) }}</h4>
+                    <small>61-90 días</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-dark text-white">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">${{ '{:,.0f}'.format(totales.vencido_90_mas or 0) }}</h4>
+                    <small>+90 días</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de deudas -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Proveedor</th>
+                            <th class="text-center"># Ctas</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end bg-success">Vigente</th>
+                            <th class="text-end bg-warning text-dark">1-30 días</th>
+                            <th class="text-end" style="background-color: #fd7e14; color: white;">31-60 días</th>
+                            <th class="text-end bg-danger">61-90 días</th>
+                            <th class="text-end">+90 días</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in deudas %}
+                        <tr>
+                            <td class="fw-bold">{{ d.proveedor }}</td>
+                            <td class="text-center">{{ d.num_cuentas }}</td>
+                            <td class="text-end fw-bold text-danger">${{ '{:,.2f}'.format(d.saldo_total or 0) }}</td>
+                            <td class="text-end text-success">${{ '{:,.2f}'.format(d.vigente or 0) }}</td>
+                            <td class="text-end text-warning">${{ '{:,.2f}'.format(d.vencido_1_30 or 0) }}</td>
+                            <td class="text-end" style="color: #fd7e14;">${{ '{:,.2f}'.format(d.vencido_31_60 or 0) }}</td>
+                            <td class="text-end text-danger">${{ '{:,.2f}'.format(d.vencido_61_90 or 0) }}</td>
+                            <td class="text-end fw-bold text-danger">${{ '{:,.2f}'.format(d.vencido_90_mas or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="8" class="text-center text-muted py-5">Sin cuentas por pagar</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if deudas %}
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td>TOTALES</td>
+                            <td></td>
+                            <td class="text-end text-danger">${{ '{:,.2f}'.format(totales.total or 0) }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(totales.vigente or 0) }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(totales.vencido_1_30 or 0) }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(totales.vencido_31_60 or 0) }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(totales.vencido_61_90 or 0) }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(totales.vencido_90_mas or 0) }}</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, nav, #sidebar { display: none !important; }
+    #content { margin-left: 0 !important; }
+}
+</style>
+{% endblock %}

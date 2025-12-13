@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial - ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+        .onboarding-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .progress-step {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+        .step:first-child::before {
+            left: 50%;
+        }
+        .step:last-child::before {
+            right: 50%;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            position: relative;
+            z-index: 1;
+            margin: 0 auto;
+        }
+        .step.active .step-circle {
+            background: #667eea;
+            color: white;
+        }
+        .step.completed .step-circle {
+            background: #28a745;
+            color: white;
+        }
+        .question-block {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+        .question-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .option-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .option-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .option-card input[type="radio"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+        .option-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .btn-continuar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .otro-descripcion {
+            display: none;
+            margin-top: 15px;
+        }
+        .otro-descripcion.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="onboarding-card p-5">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold mb-2">🚀 Configuración Inicial</h1>
+                <p class="text-muted">Personalicemos tu ERP según las necesidades de tu empresa</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="progress-step">
+                <div class="step active">
+                    <div class="step-circle">1</div>
+                    <small class="d-block mt-2">Empresa</small>
+                </div>
+                <div class="step">
+                    <div class="step-circle">2</div>
+                    <small class="d-block mt-2">Operación</small>
+                </div>
+                <div class="step">
+                    <div class="step-circle">3</div>
+                    <small class="d-block mt-2">Listo</small>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formulario -->
+            <form method="POST" id="onboardingForm">
+                <!-- Pregunta 1: Empleados -->
+                <div class="question-block">
+                    <div class="question-title">
+                        👥 1. ¿Cuántos empleados tiene tu empresa en promedio?
+                    </div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '1-5')">
+                            <input type="radio" name="empleados_rango" value="1-5" id="emp1" class="d-none" required>
+                            <label for="emp1" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">👤</span>
+                                <span>De 1 a 5 empleados</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '6-10')">
+                            <input type="radio" name="empleados_rango" value="6-10" id="emp2" class="d-none">
+                            <label for="emp2" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">👥</span>
+                                <span>De 6 a 10 empleados</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '11-25')">
+                            <input type="radio" name="empleados_rango" value="11-25" id="emp3" class="d-none">
+                            <label for="emp3" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">👨‍👩‍👧</span>
+                                <span>De 11 a 25 empleados</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '26-99')">
+                            <input type="radio" name="empleados_rango" value="26-99" id="emp4" class="d-none">
+                            <label for="emp4" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">👨‍👩‍👧‍👦</span>
+                                <span>De 26 a 99 empleados</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '100-200')">
+                            <input type="radio" name="empleados_rango" value="100-200" id="emp5" class="d-none">
+                            <label for="emp5" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">🏢</span>
+                                <span>Entre 100 y 200 empleados</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'empleados', '200+')">
+                            <input type="radio" name="empleados_rango" value="200+" id="emp6" class="d-none">
+                            <label for="emp6" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">🏭</span>
+                                <span>Más de 200 empleados</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pregunta 2: Comprobantes -->
+                <div class="question-block">
+                    <div class="question-title">
+                        🧾 2. ¿Cómo documenta las compras de su empresa?
+                    </div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectOption(this, 'comprobantes', 'solo_facturas')">
+                            <input type="radio" name="tipo_comprobantes" value="solo_facturas" id="comp1" class="d-none" required>
+                            <label for="comp1" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">📄</span>
+                                <span>Todo con factura (CFDI)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'comprobantes', 'solo_tickets')">
+                            <input type="radio" name="tipo_comprobantes" value="solo_tickets" id="comp2" class="d-none">
+                            <label for="comp2" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">🧾</span>
+                                <span>Solo con tickets (sin factura)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'comprobantes', 'mixto')">
+                            <input type="radio" name="tipo_comprobantes" value="mixto" id="comp3" class="d-none">
+                            <label for="comp3" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">📒</span>
+                                <span>Algunas con factura y otras con ticket (mixto)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pregunta 3: Tipo de mercancía -->
+                <div class="question-block">
+                    <div class="question-title">
+                        📦 3. ¿Qué tipo de mercancía maneja su empresa?
+                    </div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectOption(this, 'mercancia', 'materia_prima')">
+                            <input type="radio" name="tipo_mercancia" value="materia_prima" id="merc1" class="d-none" required>
+                            <label for="merc1" class="mb-0 cursor-pointer w-100">
+                                <div class="d-flex align-items-start">
+                                    <span class="me-2">⚙️</span>
+                                    <div>
+                                        <strong>Materia prima para manufactura</strong>
+                                        <p class="text-muted small mb-0">Compramos materiales y los transformamos en productos terminados</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'mercancia', 'producto_directo')">
+                            <input type="radio" name="tipo_mercancia" value="producto_directo" id="merc2" class="d-none">
+                            <label for="merc2" class="mb-0 cursor-pointer w-100">
+                                <div class="d-flex align-items-start">
+                                    <span class="me-2">📦</span>
+                                    <div>
+                                        <strong>Producto terminado directo</strong>
+                                        <p class="text-muted small mb-0">Compramos productos terminados y los vendemos tal cual</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pregunta 4: Frecuencia de Inventario -->
+                <div class="question-block">
+                    <div class="question-title">
+                        📋 4. ¿Con qué frecuencia deseas realizar toma física de inventarios?
+                    </div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'turno')">
+                            <input type="radio" name="frecuencia_inventario" value="turno" id="inv1" class="d-none" required>
+                            <label for="inv1" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">🔄</span>
+                                <span>Por turno (al inicio/cierre de cada turno)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'diario')">
+                            <input type="radio" name="frecuencia_inventario" value="diario" id="inv2" class="d-none">
+                            <label for="inv2" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">📅</span>
+                                <span>Diario (una vez al día)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'semanal')">
+                            <input type="radio" name="frecuencia_inventario" value="semanal" id="inv3" class="d-none">
+                            <label for="inv3" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">📆</span>
+                                <span>Semanal (una vez por semana)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'mensual')">
+                            <input type="radio" name="frecuencia_inventario" value="mensual" id="inv4" class="d-none">
+                            <label for="inv4" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">🗓️</span>
+                                <span>Mensual (una vez al mes)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'anual')">
+                            <input type="radio" name="frecuencia_inventario" value="anual" id="inv5" class="d-none">
+                            <label for="inv5" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">📊</span>
+                                <span>Anual (una vez al año)</span>
+                            </label>
+                        </div>
+                        <div class="option-card" onclick="selectOption(this, 'inventario', 'otro'); mostrarOtroDescripcion()">
+                            <input type="radio" name="frecuencia_inventario" value="otro" id="inv6" class="d-none">
+                            <label for="inv6" class="d-flex align-items-center mb-0 cursor-pointer w-100">
+                                <span class="me-2">✏️</span>
+                                <span>Otro (describir)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo para descripción de "Otro" -->
+                    <div class="otro-descripcion" id="otroDescripcion">
+                        <label for="frecuencia_desc" class="form-label fw-medium">Describe la frecuencia deseada:</label>
+                        <textarea class="form-control" id="frecuencia_desc" name="frecuencia_inventario_desc" 
+                                  rows="2" placeholder="Ej: Cada 15 días, los días 1 y 15 de cada mes..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Botón Continuar -->
+                <div class="text-center mt-5">
+                    <button type="submit" class="btn btn-primary btn-continuar btn-lg">
+                        Continuar →
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function selectOption(element, group, value) {
+            // Remover selección anterior del grupo
+            const groupName = group;
+            document.querySelectorAll(`input[name*="${groupName}"]`).forEach(input => {
+                input.closest('.option-card').classList.remove('selected');
+            });
+            
+            // Marcar como seleccionado
+            element.classList.add('selected');
+            element.querySelector('input').checked = true;
+            
+            // Ocultar campo "otro" si no es la opción seleccionada
+            if (group === 'inventario' && value !== 'otro') {
+                document.getElementById('otroDescripcion').classList.remove('visible');
+            }
+        }
+        
+        function mostrarOtroDescripcion() {
+            document.getElementById('otroDescripcion').classList.add('visible');
+            document.getElementById('frecuencia_desc').focus();
+        }
+
+        // Validación del formulario
+        document.getElementById('onboardingForm').addEventListener('submit', function(e) {
+            const empleados = document.querySelector('input[name="empleados_rango"]:checked');
+            const comprobantes = document.querySelector('input[name="tipo_comprobantes"]:checked');
+            const mercancia = document.querySelector('input[name="tipo_mercancia"]:checked');
+            const inventario = document.querySelector('input[name="frecuencia_inventario"]:checked');
+
+            if (!empleados || !comprobantes || !mercancia || !inventario) {
+                e.preventDefault();
+                alert('Por favor responde todas las preguntas antes de continuar.');
+                return;
+            }
+            
+            // Validar descripción si eligió "otro"
+            if (inventario.value === 'otro') {
+                const desc = document.getElementById('frecuencia_desc').value.trim();
+                if (!desc) {
+                    e.preventDefault();
+                    alert('Por favor describe la frecuencia de inventario deseada.');
+                    document.getElementById('frecuencia_desc').focus();
+                    return;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

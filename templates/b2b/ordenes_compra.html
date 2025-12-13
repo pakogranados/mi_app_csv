@@ -1,0 +1,110 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Órdenes de Compra B2B - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-shopping-cart text-primary"></i> Órdenes de Compra
+            </h1>
+            <p class="text-muted mb-0">Solicitudes de mercancía a proveedores</p>
+        </div>
+        <a href="{{ url_for('nueva_orden_compra_b2b') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nueva Orden
+        </a>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('ordenes_compra_b2b') }}" class="btn btn-sm btn-outline-secondary">
+                    Todas
+                </a>
+                <a href="{{ url_for('ordenes_compra_b2b') }}?estado=borrador" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-edit"></i> Borradores
+                </a>
+                <a href="{{ url_for('ordenes_compra_b2b') }}?estado=enviada" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-paper-plane"></i> Enviadas
+                </a>
+                <a href="{{ url_for('ordenes_compra_b2b') }}?estado=facturada" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-check"></i> Facturadas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de órdenes -->
+    <div class="card">
+        <div class="card-body">
+            {% if ordenes %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Folio</th>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Solicitado por</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in ordenes %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('ver_orden_compra_b2b', orden_id=o.id) }}" class="fw-bold text-decoration-none">
+                                    {{ o.folio }}
+                                </a>
+                            </td>
+                            <td>{{ o.fecha_solicitud.strftime('%d/%m/%Y %H:%M') if o.fecha_solicitud else '-' }}</td>
+                            <td>{{ o.proveedor_nombre }}</td>
+                            <td class="fw-bold">${{ '{:,.2f}'.format(o.total or 0) }}</td>
+                            <td>
+                                {% if o.estado == 'borrador' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-edit"></i> Borrador</span>
+                                {% elif o.estado == 'enviada' %}
+                                <span class="badge bg-primary"><i class="fas fa-paper-plane"></i> Enviada</span>
+                                {% elif o.estado == 'recibida' %}
+                                <span class="badge bg-info"><i class="fas fa-inbox"></i> Recibida</span>
+                                {% elif o.estado == 'aprobada' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Aprobada</span>
+                                {% elif o.estado == 'facturada' %}
+                                <span class="badge bg-success"><i class="fas fa-file-invoice"></i> Facturada</span>
+                                {% elif o.estado == 'cancelada' %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i> Cancelada</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ o.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ o.solicitado_por_nombre or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('ver_orden_compra_b2b', orden_id=o.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay órdenes de compra</h4>
+                <p class="text-muted">Crea una nueva orden o espera a que se genere automáticamente desde el cierre de turno.</p>
+                <a href="{{ url_for('nueva_orden_compra_b2b') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Crear Orden
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

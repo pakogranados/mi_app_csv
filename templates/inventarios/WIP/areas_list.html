@@ -1,0 +1,39 @@
+{% extends "sidebar.html" %}
+{% block title %}Áreas de Producción{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <h3 class="mb-4">Áreas de Producción</h3>
+
+  <a href="{{ url_for('nueva_area') }}" class="btn btn-success mb-3">+ Nueva Área</a>
+
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Activo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for area in areas %}
+      <tr>
+        <td>{{ area.id }}</td>
+        <td>{{ area.nombre }}</td>
+        <td>
+          {% if area.activo %}
+            <span class="badge bg-success">Sí</span>
+          {% else %}
+            <span class="badge bg-secondary">No</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('editar_area', id=area.id) }}" class="btn btn-sm btn-primary">Editar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

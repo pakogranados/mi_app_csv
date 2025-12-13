@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tester /api/login</title>
+</head>
+<body>
+  <h1>Probar /api/login</h1>
+
+  <label>Correo:
+    <input type="email" id="correo" value="">
+  </label>
+  <br><br>
+
+  <label>Contraseña:
+    <input type="password" id="password" value="">
+  </label>
+  <br><br>
+
+  <button id="btnLogin">Enviar</button>
+
+  <h3>Respuesta:</h3>
+  <pre id="out"></pre>
+
+  <script>
+    document.getElementById('btnLogin').addEventListener('click', function () {
+      const correo = document.getElementById('correo').value;
+      const password = document.getElementById('password').value;
+
+      fetch('http://127.0.0.1:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ correo, password })
+      })
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+        console.log("Respuesta API:", data);
+      })
+      .catch(err => {
+        document.getElementById('out').textContent = 'Error: ' + err;
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Registro {{ fecha }} - ERP{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('registros_historicos_dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2">
+                <i class="fas fa-arrow-left"></i> Volver al calendario
+            </a>
+            <h1 class="h2 mb-1 fw-bold">
+                <i class="fas fa-calendar-day text-primary"></i>
+                {{ fecha_obj.strftime('%A, %d de %B de %Y') }}
+            </h1>
+            <p class="text-muted mb-0">
+                {% if registro.cerrado %}
+                <span class="badge bg-secondary"><i class="fas fa-lock"></i> Día cerrado</span>
+                {% else %}
+                <span class="badge bg-success"><i class="fas fa-unlock"></i> Abierto para edición</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <form action="{{ url_for('cerrar_dia_historico', fecha=fecha) }}" method="POST" class="d-inline">
+                {% if registro.cerrado %}
+                <input type="hidden" name="accion" value="abrir">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-unlock"></i> Reabrir día
+                </button>
+                {% else %}
+                <input type="hidden" name="accion" value="cerrar">
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-lock"></i> Cerrar día
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen del día - KPIs -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="card-subtitle mb-0 opacity-75">Ventas</h6>
+                        <i class="fas fa-cash-register fa-2x opacity-50"></i>
+                    </div>
+                    <h2 class="display-5 fw-bold mb-2">${{ "{:,.2f}".format(totales.ventas) }}</h2>
+                    <p class="mb-0 opacity-75">{{ totales.num_ventas }} productos vendidos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="card-subtitle mb-0 opacity-75">Mermas</h6>
+                        <i class="fas fa-trash-alt fa-2x opacity-50"></i>
+                    </div>
+                    <h2 class="display-5 fw-bold mb-2">${{ "{:,.2f}".format(totales.mermas) }}</h2>
+                    <p class="mb-0 opacity-75">{{ totales.num_mermas }} productos perdidos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="card-subtitle mb-0 opacity-75">Consumos Internos</h6>
+                        <i class="fas fa-utensils fa-2x opacity-50"></i>
+                    </div>
+                    <h2 class="display-5 fw-bold mb-2">${{ "{:,.2f}".format(totales.consumos) }}</h2>
+                    <p class="mb-0 opacity-75">{{ totales.num_consumos }} productos consumidos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs de contenido -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <ul class="nav nav-tabs card-header-tabs" id="registroTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="ventas-tab" data-bs-toggle="tab" data-bs-target="#ventas" type="button">
+                        <i class="fas fa-cash-register text-success me-1"></i> Ventas 
+                        <span class="badge bg-success ms-1">{{ totales.num_ventas }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="mermas-tab" data-bs-toggle="tab" data-bs-target="#mermas" type="button">
+                        <i class="fas fa-trash-alt text-danger me-1"></i> Mermas 
+                        <span class="badge bg-danger ms-1">{{ totales.num_mermas }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="consumos-tab" data-bs-toggle="tab" data-bs-target="#consumos" type="button">
+                        <i class="fas fa-utensils text-warning me-1"></i> Consumos 
+                        <span class="badge bg-warning text-dark ms-1">{{ totales.num_consumos }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content" id="registroTabContent">
+                
+                <!-- TAB VENTAS -->
+                <div class="tab-pane fade show active" id="ventas" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-cash-register text-success"></i> Ventas del día
+                        </h5>
+                        {% if not registro.cerrado %}
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalVenta">
+                            <i class="fas fa-plus"></i> Agregar venta
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th>Pago</th>
+                                    <th>Notas</th>
+                                    {% if not registro.cerrado %}<th width="60"></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for v in ventas %}
+                                <tr>
+                                    <td><strong>{{ v.producto_nombre }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark">{{ v.cantidad }}</span>
+                                    </td>
+                                    <td class="text-end">${{ "{:,.2f}".format(v.precio_unitario) }}</td>
+                                    <td class="text-end">
+                                        <strong class="text-success">${{ "{:,.2f}".format(v.subtotal) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ v.metodo_pago }}</span>
+                                    </td>
+                                    <td class="text-muted small">{{ v.notas or '-' }}</td>
+                                    {% if not registro.cerrado %}
+                                    <td>
+                                        <form action="{{ url_for('eliminar_registro_historico', tipo='venta', id=v.id) }}" 
+                                              method="POST" onsubmit="return confirm('¿Eliminar esta venta?')">
+                                            <input type="hidden" name="fecha" value="{{ fecha }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                                        <p class="text-muted mb-0">No hay ventas registradas para este día</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if ventas %}
+                            <tfoot class="table-success">
+                                <tr>
+                                    <th colspan="3" class="text-end">TOTAL VENTAS:</th>
+                                    <th class="text-end">${{ "{:,.2f}".format(totales.ventas) }}</th>
+                                    <th colspan="3"></th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB MERMAS -->
+                <div class="tab-pane fade" id="mermas" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-trash-alt text-danger"></i> Mermas del día
+                        </h5>
+                        {% if not registro.cerrado %}
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalMerma">
+                            <i class="fas fa-plus"></i> Agregar merma
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Costo Unit.</th>
+                                    <th class="text-end">Costo Total</th>
+                                    <th>Motivo</th>
+                                    <th>Descripción</th>
+                                    {% if not registro.cerrado %}<th width="60"></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in mermas %}
+                                <tr>
+                                    <td><strong>{{ m.producto_nombre }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark">{{ m.cantidad }}</span>
+                                    </td>
+                                    <td class="text-end">${{ "{:,.2f}".format(m.costo_unitario) }}</td>
+                                    <td class="text-end">
+                                        <strong class="text-danger">${{ "{:,.2f}".format(m.costo_total) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if m.motivo == 'caducado' %}bg-warning text-dark
+                                            {% elif m.motivo == 'dañado' %}bg-info
+                                            {% elif m.motivo == 'perdido' %}bg-secondary
+                                            {% elif m.motivo == 'robo' %}bg-dark
+                                            {% else %}bg-light text-dark{% endif %}">
+                                            {{ m.motivo }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ m.descripcion or '-' }}</td>
+                                    {% if not registro.cerrado %}
+                                    <td>
+                                        <form action="{{ url_for('eliminar_registro_historico', tipo='merma', id=m.id) }}" 
+                                              method="POST" onsubmit="return confirm('¿Eliminar esta merma?')">
+                                            <input type="hidden" name="fecha" value="{{ fecha }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3 d-block"></i>
+                                        <p class="text-muted mb-0">No hay mermas registradas para este día</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if mermas %}
+                            <tfoot class="table-danger">
+                                <tr>
+                                    <th colspan="3" class="text-end">TOTAL PÉRDIDA:</th>
+                                    <th class="text-end">${{ "{:,.2f}".format(totales.mermas) }}</th>
+                                    <th colspan="3"></th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB CONSUMOS -->
+                <div class="tab-pane fade" id="consumos" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-utensils text-warning"></i> Consumos internos del día
+                        </h5>
+                        {% if not registro.cerrado %}
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalConsumo">
+                            <i class="fas fa-plus"></i> Agregar consumo
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Costo Unit.</th>
+                                    <th class="text-end">Costo Total</th>
+                                    <th>Responsable</th>
+                                    <th>Motivo</th>
+                                    {% if not registro.cerrado %}<th width="60"></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in consumos %}
+                                <tr>
+                                    <td><strong>{{ c.producto_nombre }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark">{{ c.cantidad }}</span>
+                                    </td>
+                                    <td class="text-end">${{ "{:,.2f}".format(c.costo_unitario) }}</td>
+                                    <td class="text-end">
+                                        <strong class="text-warning">${{ "{:,.2f}".format(c.costo_total) }}</strong>
+                                    </td>
+                                    <td>{{ c.responsable or '-' }}</td>
+                                    <td class="text-muted small">{{ c.motivo or '-' }}</td>
+                                    {% if not registro.cerrado %}
+                                    <td>
+                                        <form action="{{ url_for('eliminar_registro_historico', tipo='consumo', id=c.id) }}" 
+                                              method="POST" onsubmit="return confirm('¿Eliminar este consumo?')">
+                                            <input type="hidden" name="fecha" value="{{ fecha }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-coffee fa-3x text-muted mb-3 d-block"></i>
+                                        <p class="text-muted mb-0">No hay consumos internos registrados para este día</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if consumos %}
+                            <tfoot class="table-warning">
+                                <tr>
+                                    <th colspan="3" class="text-end">TOTAL CONSUMOS:</th>
+                                    <th class="text-end">${{ "{:,.2f}".format(totales.consumos) }}</th>
+                                    <th colspan="3"></th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AGREGAR VENTA -->
+<div class="modal fade" id="modalVenta" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_venta_historica', fecha=fecha) }}" method="POST">
+                <div class="modal-header" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-cash-register"></i> Agregar Venta
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Producto *</label>
+                        <select name="producto_id" id="venta_producto" class="form-select" required>
+                            <option value="">Seleccionar producto...</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}" data-precio="{{ p.precio_venta or 0 }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Cantidad *</label>
+                            <input type="number" name="cantidad" id="venta_cantidad" class="form-control" 
+                                   value="1" min="0.001" step="0.001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Precio Unitario *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="precio_unitario" id="venta_precio" class="form-control" 
+                                       value="0" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Subtotal</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" id="venta_subtotal" class="form-control bg-light fw-bold text-success" readonly value="0.00">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Método de pago</label>
+                        <select name="metodo_pago" class="form-select">
+                            <option value="efectivo">💵 Efectivo</option>
+                            <option value="tarjeta">💳 Tarjeta</option>
+                            <option value="transferencia">🏦 Transferencia</option>
+                            <option value="otro">📋 Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notas (opcional)</label>
+                        <input type="text" name="notas" class="form-control" placeholder="Observaciones...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar venta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AGREGAR MERMA -->
+<div class="modal fade" id="modalMerma" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_merma_historica', fecha=fecha) }}" method="POST">
+                <div class="modal-header" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-trash-alt"></i> Agregar Merma
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Producto *</label>
+                        <select name="producto_id" id="merma_producto" class="form-select" required>
+                            <option value="">Seleccionar producto...</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}" data-costo="{{ p.precio_venta or 0 }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Cantidad *</label>
+                            <input type="number" name="cantidad" id="merma_cantidad" class="form-control" 
+                                   value="1" min="0.001" step="0.001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Costo Unitario</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="costo_unitario" id="merma_costo" class="form-control" 
+                                       value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Motivo *</label>
+                        <select name="motivo" class="form-select" required>
+                            <option value="caducado">📅 Caducado</option>
+                            <option value="dañado">💔 Dañado</option>
+                            <option value="perdido">❓ Perdido</option>
+                            <option value="robo">🚨 Robo</option>
+                            <option value="otro">📋 Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción (opcional)</label>
+                        <input type="text" name="descripcion" class="form-control" placeholder="Detalles adicionales...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Guardar merma
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AGREGAR CONSUMO -->
+<div class="modal fade" id="modalConsumo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_consumo_historico', fecha=fecha) }}" method="POST">
+                <div class="modal-header" style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                    <h5 class="modal-title">
+                        <i class="fas fa-utensils"></i> Agregar Consumo Interno
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Producto *</label>
+                        <select name="producto_id" id="consumo_producto" class="form-select" required>
+                            <option value="">Seleccionar producto...</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}" data-costo="{{ p.precio_venta or 0 }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Cantidad *</label>
+                            <input type="number" name="cantidad" id="consumo_cantidad" class="form-control" 
+                                   value="1" min="0.001" step="0.001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Costo Unitario</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="costo_unitario" id="consumo_costo" class="form-control" 
+                                       value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Responsable</label>
+                        <input type="text" name="responsable" class="form-control" placeholder="Nombre del empleado...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Motivo (opcional)</label>
+                        <input type="text" name="motivo" class="form-control" placeholder="Ej: Almuerzo personal, degustación...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Guardar consumo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.card { transition: transform 0.2s, box-shadow 0.2s; }
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
+.nav-tabs .nav-link { color: #6c757d; }
+.nav-tabs .nav-link.active { color: #495057; border-color: #dee2e6 #dee2e6 #fff; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-llenar precio al seleccionar producto (Venta)
+document.getElementById('venta_producto').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const precio = option.dataset.precio || 0;
+    document.getElementById('venta_precio').value = precio;
+    calcularSubtotalVenta();
+});
+
+// Calcular subtotal venta
+function calcularSubtotalVenta() {
+    const cantidad = parseFloat(document.getElementById('venta_cantidad').value) || 0;
+    const precio = parseFloat(document.getElementById('venta_precio').value) || 0;
+    document.getElementById('venta_subtotal').value = (cantidad * precio).toFixed(2);
+}
+
+document.getElementById('venta_cantidad').addEventListener('input', calcularSubtotalVenta);
+document.getElementById('venta_precio').addEventListener('input', calcularSubtotalVenta);
+
+// Auto-llenar costo al seleccionar producto (Merma)
+document.getElementById('merma_producto').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    document.getElementById('merma_costo').value = option.dataset.costo || 0;
+});
+
+// Auto-llenar costo al seleccionar producto (Consumo)
+document.getElementById('consumo_producto').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    document.getElementById('consumo_costo').value = option.dataset.costo || 0;
+});
+</script>
+{% endblock %}
