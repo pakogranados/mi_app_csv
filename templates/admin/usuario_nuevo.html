@@ -1,0 +1,210 @@
+{% extends 'sidebar.html' %}
+{% block title %}Agregar Nuevo Usuario{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-user-plus"></i> Agregar Nuevo Usuario</h2>
+            <p class="text-muted mb-0">Completa los datos y selecciona las áreas de acceso</p>
+        </div>
+        <a href="{{ url_for('admin_gestion_usuarios') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_agregar_usuario') }}">
+        <div class="row">
+            <!-- Datos del Usuario -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-user"></i> Datos del Usuario</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Correo Electrónico *</label>
+                            <input type="email" name="correo" class="form-control form-control-lg" 
+                                   required placeholder="usuario@correo.com">
+                            <small class="text-muted">Se enviará la invitación a este correo</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo *</label>
+                            <input type="text" name="nombre" class="form-control form-control-lg" 
+                                   required placeholder="Juan Pérez García">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Puesto</label>
+                            <input type="text" name="puesto" class="form-control" 
+                                   placeholder="Ej: Cajero, Almacenista, Vendedor...">
+                            <small class="text-muted">Opcional</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botón Guardar -->
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-paper-plane"></i> Agregar y Enviar Invitación
+                        </button>
+                        <p class="text-muted small text-center mt-2 mb-0">
+                            El usuario recibirá un correo para crear su contraseña
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selección de Áreas -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-sitemap"></i> Áreas de Acceso *</h5>
+                        <span class="badge bg-light text-dark" id="contadorAreas">0 seleccionadas</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Importante:</strong> El usuario solo verá en su menú los módulos correspondientes a las áreas que selecciones aquí.
+                        </div>
+                        
+                        <div class="row">
+                            {% for area in areas %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 area-card" id="card_{{ area.id }}">
+                                    <div class="card-body p-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input area-checkbox" type="checkbox" 
+                                                   name="areas" value="{{ area.id }}" 
+                                                   id="area_{{ area.id }}"
+                                                   onchange="actualizarContador()">
+                                            <label class="form-check-label w-100 cursor-pointer" for="area_{{ area.id }}">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <div class="rounded-circle p-2 me-2" 
+                                                         style="background-color: {{ area.color or '#666' }}20;">
+                                                        <i class="{{ area.icono or 'fas fa-folder' }}" 
+                                                           style="color: {{ area.color or '#666' }}; font-size: 1.2rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ area.nombre }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ area.codigo }}</small>
+                                                    </div>
+                                                </div>
+                                                {% if area.descripcion %}
+                                                <small class="text-muted d-block">{{ area.descripcion[:60] }}{% if area.descripcion|length > 60 %}...{% endif %}</small>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    No hay áreas disponibles. Ve a <a href="{{ url_for('admin_areas') }}">Áreas del Sistema</a> para crearlas.
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Acciones rápidas -->
+                        <div class="border-top pt-3 mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="seleccionarTodas()">
+                                <i class="fas fa-check-double"></i> Seleccionar Todas
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deseleccionarTodas()">
+                                <i class="fas fa-times"></i> Quitar Todas
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="seleccionarBasicas()">
+                                <i class="fas fa-star"></i> Solo Caja/Ventas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.area-card {
+    transition: all 0.2s ease;
+    border: 2px solid #dee2e6;
+    cursor: pointer;
+}
+
+.area-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.area-card.selected {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.form-check-input:checked ~ .form-check-label {
+    font-weight: 500;
+}
+</style>
+
+<script>
+function actualizarContador() {
+    const checkboxes = document.querySelectorAll('.area-checkbox');
+    let count = 0;
+    
+    checkboxes.forEach(cb => {
+        const card = document.getElementById('card_' + cb.value);
+        if (cb.checked) {
+            count++;
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+    
+    document.getElementById('contadorAreas').textContent = count + ' seleccionada' + (count !== 1 ? 's' : '');
+}
+
+function seleccionarTodas() {
+    document.querySelectorAll('.area-checkbox').forEach(cb => cb.checked = true);
+    actualizarContador();
+}
+
+function deseleccionarTodas() {
+    document.querySelectorAll('.area-checkbox').forEach(cb => cb.checked = false);
+    actualizarContador();
+}
+
+function seleccionarBasicas() {
+    deseleccionarTodas();
+    // Buscar áreas VENTAS y CAJA
+    document.querySelectorAll('.area-checkbox').forEach(cb => {
+        const label = cb.closest('.form-check').querySelector('label').textContent;
+        if (label.includes('VENTAS') || label.includes('CAJA') || label.includes('Ventas') || label.includes('Caja')) {
+            cb.checked = true;
+        }
+    });
+    actualizarContador();
+}
+
+// Hacer click en card seleccione checkbox
+document.querySelectorAll('.area-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+        if (e.target.type !== 'checkbox') {
+            const checkbox = this.querySelector('.area-checkbox');
+            checkbox.checked = !checkbox.checked;
+            actualizarContador();
+        }
+    });
+});
+</script>
+{% endblock %}

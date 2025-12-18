@@ -3057,6 +3057,28 @@ def admin_usuario_areas():
     
     return render_template('admin/usuario_areas.html', usuarios=usuarios, total_areas=total_areas)
 
+@app.route('/admin/usuarios/nuevo')
+@require_login
+def admin_usuario_nuevo():
+    """Página para agregar nuevo usuario con selección de áreas"""
+    eid = g.empresa_id
+    
+    db = conexion_db()
+    cursor = db.cursor(dictionary=True)
+    
+    # Obtener áreas disponibles
+    cursor.execute("""
+        SELECT id, nombre, codigo, icono, color, descripcion
+        FROM areas_sistema 
+        WHERE activo = 1 
+        ORDER BY orden, nombre
+    """)
+    areas = cursor.fetchall()
+    
+    cursor.close()
+    db.close()
+    
+    return render_template('admin/usuario_nuevo.html', areas=areas)
 
 @app.route('/admin/usuario/<int:usuario_id>/areas', methods=['GET', 'POST'])
 @require_login
