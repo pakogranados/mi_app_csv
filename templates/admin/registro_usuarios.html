@@ -1,17 +1,9 @@
-{% extends "sidebar.html" %}
-
-{% block title %}Registro de Usuarios - ERP{% endblock %}
-
+{% extends 'sidebar.html' %}
+{% block title %}Gestión de Usuarios{% endblock %}
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Header -->
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1 fw-bold">
-                <i class="fas fa-user-plus text-primary"></i> Registro de Usuarios
-            </h1>
-            <p class="text-muted mb-0">Agrega personas al equipo de tu empresa</p>
-        </div>
+        <h2><i class="fas fa-users-cog"></i> Gestión de Usuarios</h2>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
             <i class="fas fa-plus"></i> Agregar Usuario
         </button>
@@ -23,7 +15,7 @@
             <div class="card bg-warning text-dark">
                 <div class="card-body text-center py-3">
                     <h3 class="mb-0">{{ conteo.pendientes or 0 }}</h3>
-                    <small><i class="fas fa-clock"></i> Pendientes de asignar área</small>
+                    <small><i class="fas fa-clock"></i> Pendientes</small>
                 </div>
             </div>
         </div>
@@ -45,15 +37,6 @@
         </div>
     </div>
 
-    <!-- Info -->
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-info-circle"></i>
-        <strong>Flujo:</strong> 
-        1️⃣ Agrega el correo y nombre → 
-        2️⃣ Asigna un área (se envía invitación) → 
-        3️⃣ Usuario acepta y crea su contraseña
-    </div>
-
     <!-- Tabla -->
     <div class="card">
         <div class="card-body p-0">
@@ -63,10 +46,9 @@
                         <tr>
                             <th>Usuario</th>
                             <th>Correo</th>
-                            <th>Puesto</th>
-                            <th>Estado</th>
                             <th>Áreas</th>
-                            <th></th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -74,86 +56,63 @@
                         <tr>
                             <td>
                                 <strong>{{ u.nombre }}</strong>
+                                {% if u.puesto %}<br><small class="text-muted">{{ u.puesto }}</small>{% endif %}
                             </td>
                             <td>{{ u.correo }}</td>
-                            <td>{{ u.puesto or '-' }}</td>
+                            <td>
+                                {% if u.areas_nombres %}
+                                <small>{{ u.areas_nombres }}</small>
+                                {% else %}
+                                <span class="text-muted">Sin áreas</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if u.estado_registro == 'pendiente' %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-clock"></i> Pendiente
-                                </span>
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendiente</span>
                                 {% elif u.estado_registro == 'invitado' %}
-                                <span class="badge bg-info">
-                                    <i class="fas fa-envelope"></i> Invitado
-                                </span>
+                                <span class="badge bg-info"><i class="fas fa-envelope"></i> Invitado</span>
                                 {% elif u.estado_registro == 'activo' %}
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check"></i> Activo
-                                </span>
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Activo</span>
                                 {% else %}
                                 <span class="badge bg-secondary">{{ u.estado_registro }}</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                {% if u.areas_nombres %}
-                                <small>{{ u.areas_nombres }}</small>
-                                {% elif u.estado_registro == 'pendiente' %}
-                                <span class="text-warning">
-                                    <i class="fas fa-exclamation-triangle"></i> Sin asignar
-                                </span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
+                            <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-
-                                    {# Editar: pendiente o invitado #}
-                                    {% if u.estado_registro in ['pendiente', 'invitado'] %}
-                                    <button class="btn btn-outline-secondary"
+                                    <!-- Editar -->
+                                    <button class="btn btn-outline-secondary" title="Editar"
                                             onclick="editarUsuario({{ u.id }}, '{{ u.nombre }}', '{{ u.puesto or '' }}')"
-                                            title="Editar">
+                                            data-bs-toggle="modal" data-bs-target="#modalEditar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    {% endif %}
-
-                                    {# Asignar áreas: todos excepto activos bloqueados por backend #}
-                                    <a href="{{ url_for('admin_usuario_asignar_areas', usuario_id=u.id) }}"
-                                    class="btn btn-outline-primary"
-                                    title="Asignar áreas">
+                                    
+                                    <!-- Gestionar Áreas -->
+                                    <a href="{{ url_for('admin_usuario_areas', usuario_id=u.id) }}" 
+                                       class="btn btn-outline-primary" title="Gestionar Áreas">
                                         <i class="fas fa-sitemap"></i>
                                     </a>
-
-                                    {# Reenviar invitación: solo invitado #}
+                                    
+                                    <!-- Reenviar Invitación (solo si invitado) -->
                                     {% if u.estado_registro == 'invitado' %}
-                                    <form method="POST"
-                                        action="{{ url_for('admin_reenviar_invitacion', usuario_id=u.id) }}"
-                                        style="display:inline;">
-                                        <button type="submit"
-                                                class="btn btn-outline-info"
-                                                title="Reenviar invitación">
-                                            <i class="fas fa-redo"></i>
+                                    <form action="{{ url_for('admin_reenviar_invitacion', usuario_id=u.id) }}" 
+                                          method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-info" title="Reenviar Invitación">
+                                            <i class="fas fa-paper-plane"></i>
                                         </button>
                                     </form>
                                     {% endif %}
-
-                                    <!-- Eliminar/Desactivar -->
-                                    {% if u.id != session.get('usuario_id') %}
-                                    <form method="POST" action="{{ url_for('admin_eliminar_usuario', usuario_id=u.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
-                                                title="{{ 'Eliminar' if u.estado_registro in ['pendiente', 'invitado'] else 'Desactivar' }}"
-                                                onclick="return confirm('¿{{ 'Eliminar' if u.estado_registro in ['pendiente', 'invitado'] else 'Desactivar' }} a {{ u.nombre }}?')">
-                                            <i class="fas fa-{{ 'trash' if u.estado_registro in ['pendiente', 'invitado'] else 'user-slash' }}"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-
+                                    
+                                    <!-- Eliminar -->
+                                    <button class="btn btn-outline-danger" title="Eliminar"
+                                            onclick="confirmarEliminar({{ u.id }}, '{{ u.nombre }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-5">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="fas fa-users fa-3x mb-3 d-block"></i>
                                 No hay usuarios registrados.<br>
                                 <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#modalAgregar">
@@ -167,18 +126,11 @@
             </div>
         </div>
     </div>
-
-    <!-- Link a áreas -->
-    <div class="text-center mt-4">
-        <a href="{{ url_for('admin_areas') }}" class="btn btn-outline-primary">
-            <i class="fas fa-sitemap"></i> Ir a Asignar Áreas
-        </a>
-    </div>
 </div>
 
 <!-- Modal Agregar Usuario -->
 <div class="modal fade" id="modalAgregar" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('admin_agregar_usuario') }}">
                 <div class="modal-header bg-primary text-white">
@@ -186,33 +138,57 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Correo Electrónico *</label>
-                        <input type="email" name="correo" class="form-control" required 
-                               placeholder="usuario@correo.com">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Correo Electrónico *</label>
+                                <input type="email" name="correo" class="form-control" required
+                                        placeholder="usuario@correo.com">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nombre Completo *</label>
+                                <input type="text" name="nombre" class="form-control" required
+                                        placeholder="Juan Pérez">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Puesto (opcional)</label>
+                                <input type="text" name="puesto" class="form-control"
+                                        placeholder="Ej: Vendedor, Almacenista...">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Áreas de Acceso *</label>
+                            <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                                {% for area in areas_disponibles %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="areas" value="{{ area.id }}" 
+                                           id="area_{{ area.id }}">
+                                    <label class="form-check-label" for="area_{{ area.id }}">
+                                        <i class="fas fa-{{ area.icono or 'folder' }} me-1" 
+                                           style="color: {{ area.color or '#666' }}"></i>
+                                        {{ area.nombre }}
+                                        <small class="text-muted">({{ area.codigo }})</small>
+                                    </label>
+                                </div>
+                                {% else %}
+                                <p class="text-muted mb-0">No hay áreas disponibles</p>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Selecciona las áreas a las que tendrá acceso el usuario</small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nombre Completo *</label>
-                        <input type="text" name="nombre" class="form-control" required 
-                               placeholder="Juan Pérez">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Puesto (opcional)</label>
-                        <input type="text" name="puesto" class="form-control" 
-                               placeholder="Ej: Vendedor, Almacenista...">
-                    </div>
-                    <div class="alert alert-light">
-                        <small>
-                            <i class="fas fa-info-circle"></i>
-                            El usuario quedará en estado "Pendiente" hasta que le asignes un área.
-                            Al asignar el área, recibirá un correo de invitación.
-                        </small>
+                    
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Al agregar, se enviará un correo de invitación para que el usuario cree su contraseña.
+                        Solo podrá ver los módulos correspondientes a las áreas asignadas.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Agregar
+                        <i class="fas fa-paper-plane"></i> Agregar y Enviar Invitación
                     </button>
                 </div>
             </form>
@@ -250,12 +226,41 @@
     </div>
 </div>
 
+<!-- Modal Confirmar Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de eliminar al usuario <strong id="nombreEliminar"></strong>?</p>
+                <p class="text-muted small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function editarUsuario(id, nombre, puesto) {
-    document.getElementById('formEditar').action = `/admin/usuarios/${id}/editar`;
+    document.getElementById('formEditar').action = '/admin/usuarios/' + id + '/editar';
     document.getElementById('editNombre').value = nombre;
     document.getElementById('editPuesto').value = puesto;
-    new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+
+function confirmarEliminar(id, nombre) {
+    document.getElementById('nombreEliminar').textContent = nombre;
+    document.getElementById('formEliminar').action = '/admin/usuarios/' + id + '/eliminar';
+    new bootstrap.Modal(document.getElementById('modalEliminar')).show();
 }
 </script>
 {% endblock %}

@@ -1575,81 +1575,40 @@ def reset_password(token):
 # 1. REGISTRO DE USUARIOS (Admin agrega correos/nombres)
 # =============================================
 
-@app.route('/admin/usuarios/registro')
-@require_login
-def admin_registro_usuarios():
-    """Panel de registro de usuarios - Admin agrega personas al equipo"""
-    eid = g.empresa_id
-    
-    db = conexion_db()
-    cursor = db.cursor(dictionary=True)
-    
-    # Obtener usuarios por estado
-    cursor.execute("""
-        SELECT u.*, 
-               COUNT(DISTINCT ua.area_id) as num_areas,
-               GROUP_CONCAT(DISTINCT a.nombre SEPARATOR ', ') as areas_nombres
-        FROM usuarios u
-        LEFT JOIN usuario_areas ua ON ua.usuario_id = u.id AND ua.activo = 1
-        LEFT JOIN areas_sistema a ON a.id = ua.area_id
-        WHERE u.empresa_id = %s
-        GROUP BY u.id
-        ORDER BY 
-            CASE u.estado_registro 
-                WHEN 'pendiente' THEN 1 
-                WHEN 'invitado' THEN 2 
-                WHEN 'activo' THEN 3 
-                ELSE 4 
-            END,
-            u.nombre
-    """, (eid,))
-    usuarios = cursor.fetchall()
-    
-    # Contar por estado
-    cursor.execute("""
-        SELECT 
-            SUM(CASE WHEN estado_registro = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
-            SUM(CASE WHEN estado_registro = 'invitado' THEN 1 ELSE 0 END) as invitados,
-            SUM(CASE WHEN estado_registro = 'activo' THEN 1 ELSE 0 END) as activos
-        FROM usuarios WHERE empresa_id = %s
-    """, (eid,))
-    conteo = cursor.fetchone()
-    
-    cursor.close()
-    db.close()
-    
-    return render_template('admin/registro_usuarios.html', usuarios=usuarios, conteo=conteo)
-
-
 @app.route('/admin/usuarios/agregar', methods=['POST'])
 @require_login
 def admin_agregar_usuario():
-    """Admin agrega un nuevo usuario y envía invitación para crear contraseña."""
+    """Admin agrega un nuevo usuario con áreas asignadas y envía invitación."""
     eid = g.empresa_id
     uid = g.usuario_id
-
+    
     correo = (request.form.get('correo') or '').strip().lower()
     nombre = (request.form.get('nombre') or '').strip()
     puesto = (request.form.get('puesto') or '').strip()
-
+    areas_seleccionadas = request.form.getlist('areas')  # Lista de IDs de áreas
+    
     if not correo or not nombre:
         flash('Correo y nombre son requeridos', 'warning')
         return redirect(url_for('admin_registro_usuarios'))
-
+    
+    if not areas_seleccionadas:
+        flash('Debes asignar al menos un área al usuario', 'warning')
+        return redirect(url_for('admin_registro_usuarios'))
+    
     db = conexion_db()
     cursor = db.cursor(dictionary=True)
-
+    
     try:
-        # Verificar correo no exista (global por tu UNIQUE)
+        # Verificar correo no exista
         cursor.execute("SELECT id FROM usuarios WHERE correo = %s", (correo,))
         if cursor.fetchone():
             flash('Este correo ya está registrado', 'danger')
             return redirect(url_for('admin_registro_usuarios'))
-
+        
         # Token invitación + expiración
         token = secrets.token_urlsafe(32)
         expira = datetime.now() + timedelta(hours=24)
-
+        
         # Crear usuario invitado (sin contraseña aún)
         cursor.execute("""
             INSERT INTO usuarios
@@ -1667,52 +1626,91 @@ def admin_agregar_usuario():
              %s, NOW(), %s,
              %s)
         """, (nombre, correo, puesto, eid, token, expira, uid))
-
+        
+        usuario_id = cursor.lastrowid
+        
+        # Asignar áreas seleccionadas
+        for area_id in areas_seleccionadas:
+            cursor.execute("""
+                INSERT INTO usuario_areas (usuario_id, area_id, empresa_id, rol_area, activo)
+                VALUES (%s, %s, %s, 'operador', 1)
+            """, (usuario_id, int(area_id), eid))
+        
         db.commit()
-
-        # Link para crear contraseña (necesitas crear esta ruta)
+        
+        # Link para crear contraseña
         link = url_for('completar_registro', token=token, _external=True)
-
+        
+        # Obtener nombres de áreas asignadas para el correo
+        cursor.execute("""
+            SELECT GROUP_CONCAT(a.nombre SEPARATOR ', ') as areas
+            FROM usuario_areas ua
+            JOIN areas_sistema a ON a.id = ua.area_id
+            WHERE ua.usuario_id = %s
+        """, (usuario_id,))
+        areas_nombres = cursor.fetchone()['areas'] or 'Sin áreas'
+        
         msg = Message(
             subject='Invitación a ERP - Crea tu contraseña',
             recipients=[correo]
         )
-        msg.body = f"""Hola {nombre},
-
- Te han invitado al ERP.
- Crea tu contraseña usando este enlace (válido 24 horas):
-
- {link}
-
- Si no esperabas esta invitación, ignora este correo.
- """
+        
         msg.html = f"""
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
-          <h2>Invitación al ERP</h2>
-          <p>Hola <b>{nombre}</b>,</p>
-          <p>Te han invitado al ERP. Para activar tu cuenta, crea tu contraseña:</p>
-          <p><a href="{link}" style="display:inline-block;padding:10px 14px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px">
-             Crear contraseña
-          </a></p>
-          <p style="color:#666;font-size:12px">Este enlace expira en 24 horas.</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
+                .content {{ background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }}
+                .btn {{ display: inline-block; background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+                .areas {{ background: #e8f4f8; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+                .footer {{ text-align: center; color: #666; font-size: 12px; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>¡Bienvenido al ERP!</h1>
+                </div>
+                <div class="content">
+                    <p>Hola <strong>{nombre}</strong>,</p>
+                    <p>Has sido invitado a formar parte del equipo. Para comenzar, crea tu contraseña haciendo clic en el siguiente botón:</p>
+                    
+                    <div class="areas">
+                        <strong>📋 Áreas asignadas:</strong><br>
+                        {areas_nombres}
+                    </div>
+                    
+                    <center>
+                        <a href="{link}" class="btn">Crear mi Contraseña</a>
+                    </center>
+                    
+                    <p><small>Este enlace expira en 24 horas.</small></p>
+                    <p>Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
+                    <p style="word-break: break-all; font-size: 12px; color: #666;">{link}</p>
+                </div>
+                <div class="footer">
+                    <p>Este es un correo automático, por favor no respondas.</p>
+                </div>
+            </div>
+        </body>
+        </html>
         """
+        
         mail.send(msg)
-
-        flash(f'✅ Invitación enviada a {correo}.', 'success')
-        return redirect(url_for('admin_registro_usuarios'))
-
+        flash(f'✅ Usuario {nombre} agregado. Invitación enviada a {correo}', 'success')
+        
     except Exception as e:
         db.rollback()
-        import traceback
-        traceback.print_exc()
-        flash(f'Error al agregar/enviar invitación: {e}', 'danger')
-        return redirect(url_for('admin_registro_usuarios'))
-
+        print(f"Error agregando usuario: {e}")
+        flash(f'Error al agregar usuario: {str(e)}', 'danger')
     finally:
         cursor.close()
         db.close()
-
+    
+    return redirect(url_for('admin_registro_usuarios'))
 
 @app.route('/admin/usuarios/<int:usuario_id>/editar', methods=['POST'])
 @require_login
