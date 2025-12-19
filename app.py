@@ -1589,11 +1589,11 @@ def admin_agregar_usuario():
     
     if not correo or not nombre:
         flash('Correo y nombre son requeridos', 'warning')
-        return redirect(url_for('admin_registro_usuarios'))
+        return redirect(url_for('admin_gestion_usuarios'))  # ✅ CAMBIO 1
     
     if not areas_seleccionadas:
         flash('Debes asignar al menos un área al usuario', 'warning')
-        return redirect(url_for('admin_registro_usuarios'))
+        return redirect(url_for('admin_gestion_usuarios'))  # ✅ CAMBIO 2
     
     db = conexion_db()
     cursor = db.cursor(dictionary=True)
@@ -1603,7 +1603,7 @@ def admin_agregar_usuario():
         cursor.execute("SELECT id FROM usuarios WHERE correo = %s", (correo,))
         if cursor.fetchone():
             flash('Este correo ya está registrado', 'danger')
-            return redirect(url_for('admin_registro_usuarios'))
+            return redirect(url_for('admin_gestion_usuarios'))  # ✅ CAMBIO 3
         
         # Token invitación + expiración
         token = secrets.token_urlsafe(32)
@@ -1645,7 +1645,7 @@ def admin_agregar_usuario():
         cursor.execute("""
             SELECT GROUP_CONCAT(a.nombre SEPARATOR ', ') as areas
             FROM usuario_areas ua
-            JOIN areas_sistema a ON a.id = ua.area_id
+            JOIN areas_produccion a ON a.id = ua.area_id  # ✅ CAMBIO 4: areas_sistema → areas_produccion
             WHERE ua.usuario_id = %s
         """, (usuario_id,))
         areas_nombres = cursor.fetchone()['areas'] or 'Sin áreas'
@@ -1710,8 +1710,8 @@ def admin_agregar_usuario():
         cursor.close()
         db.close()
     
-    return redirect(url_for('admin_registro_usuarios'))
-
+    return redirect(url_for('admin_gestion_usuarios'))  # ✅ CAMBIO 5
+    
 @app.route('/admin/usuarios/<int:usuario_id>/editar', methods=['POST'])
 @require_login
 def admin_editar_usuario(usuario_id):
