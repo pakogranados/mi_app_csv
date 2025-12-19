@@ -3066,12 +3066,12 @@ def admin_usuario_nuevo():
     db = conexion_db()
     cursor = db.cursor(dictionary=True)
     
-    # Obtener áreas disponibles
+    # ✅ CORREGIDO - Obtener áreas de producción
     cursor.execute("""
-        SELECT id, nombre, codigo, icono, color, descripcion
-        FROM areas_sistema 
+        SELECT id, nombre, descripcion
+        FROM areas_produccion
         WHERE activo = 1 AND empresa_id = %s
-        ORDER BY orden, nombre
+        ORDER BY nombre
     """, (eid,))
     areas = cursor.fetchall()
     
