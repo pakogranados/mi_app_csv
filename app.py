@@ -47,6 +47,12 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'rpar bqac dhmu ft
 app.config['MAIL_DEFAULT_SENDER'] = ('ERP Sistema', os.environ.get('MAIL_DEFAULT_SENDER', 'pakogranados1@gmail.com'))
 app.config["API_JWT_SECRET"] = "%Interely8711"
 
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.jinja_env.auto_reload = True
+app.jinja_env.cache = {}
+
+
 # Debug (solo en desarrollo)
 if os.environ.get('FLASK_ENV') == 'development':
     print("=" * 60)
