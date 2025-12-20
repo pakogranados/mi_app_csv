@@ -3074,10 +3074,10 @@ def admin_usuario_nuevo():
     
     # Obtener áreas disponibles
     cursor.execute("""
-        SELECT id, nombre, descripcion
-        FROM areas_produccion
+        SELECT id, nombre, codigo, icono, color, descripcion
+        FROM areas_sistema
         WHERE activo = 1 AND empresa_id = %s
-        ORDER BY nombre
+        ORDER BY orden, nombre
     """, (eid,))
     areas = cursor.fetchall()
     
