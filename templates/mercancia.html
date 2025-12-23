@@ -69,7 +69,11 @@
         <option value="8">8%</option>
       </select>
     </div>
-
+    <div class="col-md-2">
+      <label class="form-label">Mínimo en Existencia</label>
+      <input type="number" name="minimo_existencia" step="0.01" min="0" class="form-control" value="0" placeholder="0">
+      <small class="text-muted">Alertas de inventario bajo</small>
+    </div>
     <div class="col-md-2 d-flex gap-2 align-items-end">
       <button type="submit" class="btn btn-primary w-100">Registrar</button>
       <a href="{{ url_for('nueva_compra') }}" class="btn btn-success">Nueva Compra</a>
@@ -103,6 +107,7 @@
             <th style="width:110px;">Cont. Neto</th>
             <th style="width:120px;">IVA (%)</th>
             <th style="width:120px;">IEPS (%)</th>
+            <th style="width:140px;">Mín. Existencia</th>
             <th style="width:220px;">Producto base</th>
             <th style="width:240px;">Cuenta (si aplica)</th>
             <th style="width:200px;">Asignar Subcuenta</th>
@@ -141,6 +146,9 @@
                   <option value="0" {% if p.ieps == 0 %}selected{% endif %}>0%</option>
                   <option value="8" {% if p.ieps == 8 %}selected{% endif %}>8%</option>
                 </select>
+              </td>
+              <td>
+                <input type="number" name="minimo_existencia" step="0.01" min="0" class="form-control" value="{{ p.minimo_existencia or 0 }}">
               </td>
               <td>
                 <select name="producto_base_id" class="form-select">
