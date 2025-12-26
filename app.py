@@ -14,29 +14,53 @@ import re
 from functools import wraps
 import bcrypt
 from flask_mysqldb import MySQL
-from config import Config
 import secrets
 import mysql.connector
 from mysql.connector import Error
 import os
 from werkzeug.utils import secure_filename
 import csv
-from api import api as api_bp  # importa el Blueprint definido en api/__init__.py
+import sys
+
+# ===== DETECTAR ENTORNO (PythonAnywhere vs Local) =====
+if '/home/' in os.getcwd():
+    try:
+        from config_pythonanywhere import Config
+    except:
+        from config import Config
+else:
+    from config import Config
 
 # ===== CARGAR VARIABLES DE ENTORNO =====
 from dotenv import load_dotenv
 load_dotenv()
 
-# ===== IMPORTS DE MÓDULOS LOCALES =====
-from db import conexion_db
-from utils.decorators import require_login, require_role  # ✅ Desde utils (no auth_utils)
+# ===== CREAR LA APP DE FLASK =====
+app = Flask(__name__)
+app.config.from_object(Config)
 
 mysql = MySQL(app)
 
-# ===== CREAR LA APP DE FLASK =====
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key_cambiar')
+# ===== IMPORTS DE MÓDULOS LOCALES =====
+from db import conexion_db
+from utils.decorators import require_login, require_role
 
+# Importar blueprints del sistema multi-tenant
+try:
+    from routes import auth, onboarding, dashboard, admin
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(onboarding.bp)
+    app.register_blueprint(dashboard.bp)
+    app.register_blueprint(admin.bp)
+except ImportError:
+    pass  # Los blueprints se cargarán más adelante en el código
+
+# ===== IMPORTAR API BLUEPRINT =====
+try:
+    from api import api as api_bp
+    app.register_blueprint(api_bp, url_prefix='/api')
+except ImportError:
+    pass
 
 
 # ===== CONFIGURACIÓN DE MAIL (LEE DESDE .env) =====
