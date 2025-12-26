@@ -263,7 +263,7 @@ def require_login(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@@app.before_request
+@app.before_request
 def before_request():
     """Carga contexto multi-tenant automáticamente en cada petición"""
     # Variables básicas de sesión
