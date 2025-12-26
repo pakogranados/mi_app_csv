@@ -20,12 +20,12 @@ def contratante():
         estado = request.form.get('estado', '')
         cp = request.form.get('cp', '')
         
-        cur = mysql.connection.cursor()
+        cur = get_mysql().connection.cursor()
         cur.execute("""
             INSERT INTO contratantes (razon_social, rfc, email_contacto, telefono, direccion, ciudad, estado, cp, activo)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
         """, (razon_social, rfc, email_contacto, telefono, direccion, ciudad, estado, cp))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         contratante_id = cur.lastrowid
         cur.close()
         
@@ -44,12 +44,12 @@ def empresa():
         rfc = request.form['rfc']
         contratante_id = session['temp_contratante_id']
         
-        cur = mysql.connection.cursor()
+        cur = get_mysql().connection.cursor()
         cur.execute("""
             INSERT INTO empresas (contratante_id, nombre, rfc, puede_compartir_rfc, activo)
             VALUES (%s, %s, %s, TRUE, TRUE)
         """, (contratante_id, nombre, rfc))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         empresa_id = cur.lastrowid
         cur.close()
         
@@ -63,7 +63,7 @@ def modulos():
     if 'temp_empresa_id' not in session:
         return redirect(url_for('onboarding.empresa'))
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("SELECT * FROM catalogo_modulos WHERE activo = TRUE ORDER BY orden")
     modulos_lista = cur.fetchall()
     
@@ -76,7 +76,7 @@ def modulos():
                 INSERT INTO empresa_modulos (empresa_id, modulo_id, activo)
                 VALUES (%s, %s, TRUE)
             """, (empresa_id, modulo_id))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         cur.close()
         
         return redirect(url_for('onboarding.plan'))
@@ -89,7 +89,7 @@ def plan():
     if 'temp_empresa_id' not in session:
         return redirect(url_for('onboarding.modulos'))
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     empresa_id = session['temp_empresa_id']
     contratante_id = session['temp_contratante_id']
     
@@ -118,7 +118,7 @@ def plan():
             INSERT INTO suscripciones (contratante_id, tipo_plan, fecha_inicio, fecha_vencimiento, fecha_proximo_pago, subtotal, total, estado)
             VALUES (%s, %s, CURDATE(), %s, %s, %s, %s, 'ACTIVA')
         """, (contratante_id, tipo_plan, fecha_vencimiento, fecha_vencimiento, total, total))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         
         user_id = session['temp_user_id']
         cur.execute("""
@@ -126,7 +126,7 @@ def plan():
             SET contratante_id = %s, empresa_id = %s, activo = TRUE, nombre = %s, empresas_acceso = %s
             WHERE id = %s
         """, (contratante_id, empresa_id, 'Director General', json.dumps([empresa_id]), user_id))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         cur.close()
         
         session.pop('temp_user_id', None)
@@ -138,3 +138,8 @@ def plan():
     
     cur.close()
     return render_template('onboarding/plan.html', modulos=modulos_lista, subtotal_mensual=subtotal_mensual, subtotal_anual=subtotal_anual)
+
+def get_mysql():
+    """Importación lazy para evitar circular imports"""
+    from app_multitenant import mysql
+    return mysql

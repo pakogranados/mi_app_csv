@@ -8,7 +8,7 @@ bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 @require_login
 @require_contratante_activo
 def index():
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     
     cur.execute("""
         SELECT cm.codigo, cm.nombre, cm.icono, cm.color
@@ -30,3 +30,9 @@ def index():
     
     cur.close()
     return render_template('dashboard.html', modulos=modulos_activos, suscripcion=suscripcion)
+
+
+def get_mysql():
+    """Importación lazy para evitar circular imports"""
+    from app_multitenant import mysql
+    return mysql

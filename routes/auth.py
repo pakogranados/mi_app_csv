@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from app_multitenant import mysql
 import json
 
 bp = Blueprint('auth', __name__)
+
+
+
 
 @bp.route('/')
 def index():
@@ -17,7 +19,7 @@ def login():
         email = request.form['email']
         password = request.form['password']
         
-        cur = mysql.connection.cursor()
+        cur = get_mysql().connection.cursor()
         cur.execute("""
             SELECT u.*, c.activo as contratante_activo, c.razon_social, e.nombre as empresa_nombre
             FROM usuarios u
@@ -70,7 +72,7 @@ def registro():
             flash('Las contraseñas no coinciden', 'danger')
             return redirect(url_for('auth.registro'))
         
-        cur = mysql.connection.cursor()
+        cur = get_mysql().connection.cursor()
         cur.execute("SELECT id FROM usuarios WHERE correo = %s", (email,))
         if cur.fetchone():
             flash('El email ya está registrado', 'danger')
@@ -82,7 +84,7 @@ def registro():
             INSERT INTO usuarios (correo, contrasena, nombre, activo, rango, puede_agregar_usuarios, rol) 
             VALUES (%s, %s, %s, FALSE, 1, TRUE, 'admin')
         """, (email, hashed_password, 'Usuario Temporal'))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         user_id = cur.lastrowid
         cur.close()
         
@@ -90,3 +92,11 @@ def registro():
         return redirect(url_for('onboarding.contratante'))
     
     return render_template('registro.html')
+
+def get_mysql():
+    """Importación lazy para evitar circular imports"""
+    from app_multitenant import mysql
+    return mysql
+
+
+bp = Blueprint('auth', __name__)

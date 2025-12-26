@@ -10,7 +10,7 @@ bp = Blueprint('admin', __name__, url_prefix='/admin')
 @require_login
 @require_rango(1)
 def config_contratante():
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     
     if request.method == 'POST':
         razon_social = request.form['razon_social']
@@ -28,7 +28,7 @@ def config_contratante():
                 direccion = %s, ciudad = %s, estado = %s, cp = %s
             WHERE id = %s
         """, (razon_social, rfc, email_contacto, telefono, direccion, ciudad, estado, cp, g.contratante_id))
-        mysql.connection.commit()
+        get_mysql().connection.commit()
         flash('Información del contratante actualizada exitosamente', 'success')
     
     cur.execute("SELECT * FROM contratantes WHERE id = %s", (g.contratante_id,))
@@ -59,7 +59,7 @@ def nueva_empresa():
         INSERT INTO empresas (contratante_id, nombre, rfc, puede_compartir_rfc, activo)
         VALUES (%s, %s, %s, TRUE, TRUE)
     """, (g.contratante_id, nombre, rfc))
-    mysql.connection.commit()
+    get_mysql().connection.commit()
     cur.close()
     
     flash('Empresa creada exitosamente', 'success')
@@ -113,7 +113,7 @@ def toggle_modulo():
             INSERT INTO empresa_modulos (empresa_id, modulo_id, activo) VALUES (%s, %s, %s)
         """, (empresa_id, modulo_id, activo))
     
-    mysql.connection.commit()
+    get_mysql().connection.commit()
     cur.close()
     
     return jsonify({'success': True})
@@ -167,7 +167,7 @@ def nuevo_usuario():
         INSERT INTO usuarios (contratante_id, empresa_id, nombre, correo, contrasena, rango, empresas_acceso, puede_agregar_usuarios, activo, rol)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
     """, (g.contratante_id, empresa_id, nombre, email, hashed_password, rango, json.dumps(empresas_acceso), puede_agregar, rol))
-    mysql.connection.commit()
+    get_mysql().connection.commit()
     cur.close()
     
     flash('Usuario creado exitosamente', 'success')
@@ -191,7 +191,7 @@ def editar_usuario(usuario_id):
             puede_agregar_usuarios = %s, activo = %s
         WHERE id = %s AND contratante_id = %s
     """, (nombre, empresa_id, rango, json.dumps(empresas_acceso), puede_agregar, activo, usuario_id, g.contratante_id))
-    mysql.connection.commit()
+    get_mysql().connection.commit()
     cur.close()
     
     flash('Usuario actualizado exitosamente', 'success')
@@ -210,8 +210,14 @@ def eliminar_usuario(usuario_id):
         DELETE FROM usuarios 
         WHERE id = %s AND contratante_id = %s
     """, (usuario_id, g.contratante_id))
-    mysql.connection.commit()
+    mget_mysql().connection.commit()
     cur.close()
     
     flash('Usuario eliminado exitosamente', 'success')
     return redirect(url_for('admin.config_usuarios'))
+
+
+def get_mysql():
+    """Importación lazy para evitar circular imports"""
+    from app_multitenant import mysql
+    return mysql
