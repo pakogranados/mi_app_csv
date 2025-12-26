@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Primera Empresa - Onboarding{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white shadow rounded-lg p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900">Paso 2 de 4: Primera Empresa</h2>
+                <p class="mt-2 text-sm text-gray-600">Crea la primera empresa de tu grupo. Podrás agregar más después.</p>
+                
+                <div class="mt-4">
+                    <div class="flex items-center">
+                        <div class="flex-1 h-2 bg-indigo-600 rounded"></div>
+                        <div class="flex-1 h-2 bg-indigo-600 rounded ml-2"></div>
+                        <div class="flex-1 h-2 bg-gray-200 rounded ml-2"></div>
+                        <div class="flex-1 h-2 bg-gray-200 rounded ml-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" class="space-y-6">
+                <div class="space-y-6">
+                    <div>
+                        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre de la Empresa *</label>
+                        <input type="text" name="nombre" id="nombre" required
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               placeholder="Ej: Sucursal Centro, Planta Monterrey">
+                    </div>
+
+                    <div>
+                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC de la Empresa *</label>
+                        <input type="text" name="rfc" id="rfc" required maxlength="13"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <p class="mt-2 text-sm text-gray-500">Puede ser el mismo RFC del contratante si deseas compartirlo</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between">
+                    <a href="{{ url_for('onboarding.contratante') }}"
+                       class="inline-flex justify-center py-2 px-6 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        ← Atrás
+                    </a>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Siguiente →
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

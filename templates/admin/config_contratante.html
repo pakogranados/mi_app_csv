@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración del Contratante{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Configuración del Contratante</h1>
+            <p class="mt-2 text-sm text-gray-600">Administra la información fiscal de tu organización</p>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <form method="POST" class="space-y-6">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label for="razon_social" class="block text-sm font-medium text-gray-700">Razón Social *</label>
+                        <input type="text" name="razon_social" id="razon_social" required
+                               value="{{ contratante.razon_social }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="rfc" class="block text-sm font-medium text-gray-700">RFC *</label>
+                        <input type="text" name="rfc" id="rfc" required maxlength="13"
+                               value="{{ contratante.rfc }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="email_contacto" class="block text-sm font-medium text-gray-700">Email de Contacto *</label>
+                        <input type="email" name="email_contacto" id="email_contacto" required
+                               value="{{ contratante.email_contacto }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="telefono" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                        <input type="tel" name="telefono" id="telefono"
+                               value="{{ contratante.telefono or '' }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label for="direccion" class="block text-sm font-medium text-gray-700">Dirección</label>
+                        <input type="text" name="direccion" id="direccion"
+                               value="{{ contratante.direccion or '' }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="ciudad" class="block text-sm font-medium text-gray-700">Ciudad</label>
+                        <input type="text" name="ciudad" id="ciudad"
+                               value="{{ contratante.ciudad or '' }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="estado" class="block text-sm font-medium text-gray-700">Estado</label>
+                        <input type="text" name="estado" id="estado"
+                               value="{{ contratante.estado or '' }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="cp" class="block text-sm font-medium text-gray-700">Código Postal</label>
+                        <input type="text" name="cp" id="cp" maxlength="10"
+                               value="{{ contratante.cp or '' }}"
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <a href="{{ url_for('dashboard.index') }}"
+                       class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancelar
+                    </a>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1 @@
+# Este archivo permite importar routes como paquete

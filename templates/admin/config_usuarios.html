@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
+            <p class="mt-2 text-sm text-gray-600">Administra los usuarios del sistema</p>
+        </div>
+        <button onclick="document.getElementById('modalNuevoUsuario').classList.remove('hidden')"
+                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+            <i data-feather="user-plus" class="w-5 h-5 mr-2"></i>
+            Nuevo Usuario
+        </button>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rango</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for usuario in usuarios %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ usuario.nombre }}</div>
+                                <div class="text-sm text-gray-500">{{ usuario.correo }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ usuario.empresa_nombre or 'N/A' }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ usuario.rango_nombre }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if usuario.activo %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Activo
+                        </span>
+                        {% else %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            Inactivo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editarUsuario({{ usuario.id }})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            Editar
+                        </button>
+                        {% if usuario.id != g.user_id %}
+                        <form method="POST" action="{{ url_for('admin.eliminar_usuario', usuario_id=usuario.id) }}" class="inline"
+                              onsubmit="return confirm('¿Estás seguro de eliminar este usuario?')">
+                            <button type="submit" class="text-red-600 hover:text-red-900">
+                                Eliminar
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                        No hay usuarios registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario -->
+<div id="modalNuevoUsuario" class="hidden fixed z-10 inset-0 overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form method="POST" action="{{ url_for('admin.nuevo_usuario') }}">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Nuevo Usuario</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre *</label>
+                            <input type="text" name="nombre" id="nombre" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email *</label>
+                            <input type="email" name="email" id="email" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">Contraseña *</label>
+                            <input type="password" name="password" id="password" required
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="empresa_id" class="block text-sm font-medium text-gray-700">Empresa Principal *</label>
+                            <select name="empresa_id" id="empresa_id" required
+                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                {% for empresa in empresas %}
+                                <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="rango" class="block text-sm font-medium text-gray-700">Rango *</label>
+                            <select name="rango" id="rango" required
+                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                {% for rango in rangos %}
+                                <option value="{{ rango.nivel }}">{{ rango.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="rol" class="block text-sm font-medium text-gray-700">Rol *</label>
+                            <select name="rol" id="rol" required
+                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="admin">Administrador</option>
+                                <option value="editor">Editor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Empresas con Acceso</label>
+                            {% for empresa in empresas %}
+                            <div class="flex items-center mb-2">
+                                <input type="checkbox" name="empresas_acceso[]" value="{{ empresa.id }}" id="emp_{{ empresa.id }}"
+                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="emp_{{ empresa.id }}" class="ml-2 block text-sm text-gray-900">
+                                    {{ empresa.nombre }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" name="puede_agregar_usuarios" id="puede_agregar_usuarios"
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="puede_agregar_usuarios" class="ml-2 block text-sm text-gray-900">
+                                Puede agregar usuarios
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Crear Usuario
+                    </button>
+                    <button type="button" onclick="document.getElementById('modalNuevoUsuario').classList.add('hidden')"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    feather.replace();
+</script>
+{% endblock %}

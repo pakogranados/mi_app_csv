@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Selección de Módulos - Onboarding{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+        <div class="bg-white shadow rounded-lg p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900">Paso 3 de 4: Selecciona tus Módulos</h2>
+                <p class="mt-2 text-sm text-gray-600">Elige los módulos que necesitas para tu empresa. Podrás activar o desactivar módulos después.</p>
+                
+                <div class="mt-4">
+                    <div class="flex items-center">
+                        <div class="flex-1 h-2 bg-indigo-600 rounded"></div>
+                        <div class="flex-1 h-2 bg-indigo-600 rounded ml-2"></div>
+                        <div class="flex-1 h-2 bg-indigo-600 rounded ml-2"></div>
+                        <div class="flex-1 h-2 bg-gray-200 rounded ml-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for modulo in modulos %}
+                    <div class="relative flex items-start border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                        <div class="flex items-center h-5">
+                            <input id="modulo_{{ modulo.id }}" name="modulos[]" type="checkbox" value="{{ modulo.id }}"
+                                   class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm flex-1">
+                            <label for="modulo_{{ modulo.id }}" class="font-medium text-gray-700 cursor-pointer">
+                                <i data-feather="{{ modulo.icono }}" class="inline w-5 h-5 mr-1" style="color: {{ modulo.color }}"></i>
+                                {{ modulo.nombre }}
+                            </label>
+                            <p class="text-gray-500 text-xs mt-1">{{ modulo.descripcion }}</p>
+                            <div class="mt-2 text-xs text-gray-600">
+                                <span class="font-semibold">${{ "%.2f"|format(modulo.precio_mensual) }}/mes</span>
+                                <span class="text-gray-400 ml-2">${{ "%.2f"|format(modulo.precio_anual) }}/año</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-8 flex justify-between">
+                    <a href="{{ url_for('onboarding.empresa') }}"
+                       class="inline-flex justify-center py-2 px-6 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        ← Atrás
+                    </a>
+                    <button type="submit"
+                            class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Siguiente →
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    feather.replace();
+</script>
+{% endblock %}

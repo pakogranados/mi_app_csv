@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración de Módulos{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Configuración de Módulos</h1>
+        <p class="mt-2 text-sm text-gray-600">Activa o desactiva módulos para cada empresa</p>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">
+                            Módulo
+                        </th>
+                        {% for empresa in empresas %}
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {{ empresa.nombre }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for modulo in modulos %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap sticky left-0 bg-white">
+                            <div class="flex items-center">
+                                <i data-feather="{{ modulo.icono }}" class="w-5 h-5 mr-2" style="color: {{ modulo.color }}"></i>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ modulo.nombre }}</div>
+                                    <div class="text-xs text-gray-500">${{ "%.2f"|format(modulo.precio_mensual) }}/mes</div>
+                                </div>
+                            </div>
+                        </td>
+                        {% for empresa in empresas %}
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       class="form-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                                       data-empresa="{{ empresa.id }}"
+                                       data-modulo="{{ modulo.id }}"
+                                       onchange="toggleModulo(this)"
+                                       {% if modulos_empresa.get(empresa.id, {}).get(modulo.id) %}checked{% endif %}>
+                            </label>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    feather.replace();
+
+    function toggleModulo(checkbox) {
+        const empresaId = checkbox.dataset.empresa;
+        const moduloId = checkbox.dataset.modulo;
+        const activo = checkbox.checked;
+
+        fetch('{{ url_for("admin.toggle_modulo") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                empresa_id: empresaId,
+                modulo_id: moduloId,
+                activo: activo
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const mensaje = activo ? 'Módulo activado' : 'Módulo desactivado';
+                showNotification(mensaje, 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            checkbox.checked = !activo;
+            showNotification('Error al actualizar módulo', 'error');
+        });
+    }
+
+    function showNotification(message, type) {
+        const colors = {
+            success: 'bg-green-500',
+            error: 'bg-red-500'
+        };
+        
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
