@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
 from utils.decorators import require_login, require_rango, require_puede_crear_usuarios
 from werkzeug.security import generate_password_hash
-from app import mysql
+from app_multitenant import mysql
 import json
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
