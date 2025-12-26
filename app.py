@@ -360,10 +360,7 @@ def before_request():
 
 from routes import auth, onboarding, dashboard, admin
 
-app.register_blueprint(auth.bp)
-app.register_blueprint(onboarding.bp)
-app.register_blueprint(dashboard.bp)
-app.register_blueprint(admin.bp)
+
 
 @app.context_processor
 def inject_user():
@@ -16448,7 +16445,6 @@ def inject_oc_pendientes():
 # ===== REGISTRO DE BLUEPRINTS =====
 from inventarios.WIP import bp as wip_bp
 
-app.register_blueprint(api_bp, url_prefix="/api")
 app.register_blueprint(wip_bp, url_prefix="/inventarios")
 # ==================================
 
