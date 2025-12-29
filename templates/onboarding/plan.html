@@ -74,7 +74,11 @@
                                     <span class="text-base font-normal text-gray-600">/año</span>
                                 </div>
                                 <div class="mt-1 text-sm text-green-600 font-semibold">
-                                    Ahorra {{ "%.0f"|format(((subtotal_mensual * 12 - subtotal_anual) / (subtotal_mensual * 12)) * 100) }}%
+                                    {% if subtotal_mensual > 0 %}
+                                        Ahorra {{ "%.0f"|format(((subtotal_mensual * 12 - subtotal_anual) / (subtotal_mensual * 12)) * 100) }}%
+                                    {% else %}
+                                        Selecciona módulos para ver el ahorro
+                                    {% endif %}
                                 </div>
                                 <div class="mt-4 text-sm text-gray-600">
                                     <ul class="space-y-2">

@@ -1,0 +1,152 @@
+{% extends "sidebar_multitenant.html" %}
+
+{% block title %}Dashboard - ERP Multi-Tenant{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Bienvenida -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="mb-3">👋 Bienvenido, {{ g.usuario_nombre }}</h4>
+                <p class="text-muted mb-0">{{ g.empresa_nombre }} - Sistema Multi-Tenant</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de Suscripción -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title d-flex align-items-center mb-3">
+                    <i class="fas fa-credit-card text-primary me-2"></i>
+                    Suscripción
+                </h5>
+                {% if suscripcion %}
+                <div class="mb-2">
+                    <strong>Plan:</strong> 
+                    <span class="badge bg-primary">{{ suscripcion.tipo_plan }}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Estado:</strong> 
+                    <span class="badge bg-success">{{ suscripcion.estado }}</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Próximo pago:</strong> {{ suscripcion.fecha_proximo_pago }}
+                </div>
+                {% if suscripcion.dias_restantes %}
+                <div class="mt-3">
+                    <small class="text-muted">
+                        {% if suscripcion.dias_restantes <= 7 %}
+                        <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                        Vence en {{ suscripcion.dias_restantes }} días
+                        {% else %}
+                        <i class="fas fa-check-circle text-success me-1"></i>
+                        {{ suscripcion.dias_restantes }} días restantes
+                        {% endif %}
+                    </small>
+                </div>
+                {% endif %}
+                {% else %}
+                <p class="text-muted">No hay suscripción activa</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de Usuario -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title d-flex align-items-center mb-3">
+                    <i class="fas fa-user text-info me-2"></i>
+                    Mi Cuenta
+                </h5>
+                <div class="mb-2">
+                    <strong>Usuario:</strong> {{ g.usuario_nombre }}
+                </div>
+                <div class="mb-2">
+                    <strong>Email:</strong> {{ g.user_email }}
+                </div>
+                <div class="mb-2">
+                    <strong>Rango:</strong> 
+                    {% if g.rango == 1 %}
+                        <span class="badge bg-danger">Director General</span>
+                    {% elif g.rango == 2 %}
+                        <span class="badge bg-warning">Gerente</span>
+                    {% elif g.rango == 3 %}
+                        <span class="badge bg-info">Supervisor</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Operador</span>
+                    {% endif %}
+                </div>
+                <div class="mb-2">
+                    <strong>Empresa:</strong> {{ g.empresa_nombre }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos Activos -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title d-flex align-items-center mb-4">
+                    <i class="fas fa-th-large text-success me-2"></i>
+                    Módulos Activos
+                </h5>
+                
+                {% if modulos %}
+                <div class="row g-3">
+                    {% for modulo in modulos %}
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card h-100 border-0" style="background: linear-gradient(135deg, {{ modulo.color }}15 0%, {{ modulo.color }}05 100%); border-left: 3px solid {{ modulo.color }} !important;">
+                            <div class="card-body text-center">
+                                <i class="{{ modulo.icono }} fa-2x mb-2" style="color: {{ modulo.color }};"></i>
+                                <h6 class="mb-0">{{ modulo.nombre }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No hay módulos activos. Contacta al administrador para activar módulos.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos Rápidos (solo para admins) -->
+    {% if g.rango <= 2 %}
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-bolt text-warning me-2"></i>
+                    Accesos Rápidos
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('admin.config_contratante') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-building me-1"></i> Contratante
+                    </a>
+                    <a href="{{ url_for('admin.config_empresas') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-sitemap me-1"></i> Empresas
+                    </a>
+                    <a href="{{ url_for('admin.config_modulos') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-th-large me-1"></i> Módulos
+                    </a>
+                    <a href="{{ url_for('admin.config_usuarios') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-users me-1"></i> Usuarios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

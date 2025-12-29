@@ -28,7 +28,7 @@ def index():
     suscripcion = cur.fetchone()
     
     cur.close()
-    return render_template('dashboard.html', modulos=modulos_activos, suscripcion=suscripcion)
+    return render_template('dashboard_multitenant.html', modulos=modulos_activos, suscripcion=suscripcion)
 
 
 def get_mysql():

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ERP - Sistema Multi-Tenant{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 70px;
+            --topbar-height: 60px;
+            --primary-color: #2c3e50;
+            --hover-color: #34495e;
+            --accent-color: #3498db;
+        }
+
+        body {
+            overflow-x: hidden;
+            padding-top: var(--topbar-height);
+        }
+
+        /* TOP BAR */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--topbar-height);
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            z-index: 1050;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            position: fixed;
+            top: var(--topbar-height);
+            left: 0;
+            height: calc(100vh - var(--topbar-height));
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--primary-color) 0%, #1a252f 100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        #sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+        #content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: calc(100vh - var(--topbar-height));
+            background: #f8f9fa;
+            padding-top: 1rem;
+        }
+
+        #sidebar.collapsed ~ #content { margin-left: var(--sidebar-collapsed-width); }
+
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #sidebar.collapsed .sidebar-header h4 { opacity: 0; }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: calc(var(--topbar-height) + 20px);
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
+
+        .sidebar-toggle:hover { background: #2980b9; }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-link.active {
+            background: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-link i {
+            width: 24px;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        #sidebar.collapsed .nav-link i { margin-right: 0; }
+        #sidebar.collapsed .nav-link span { display: none; }
+
+        .user-info {
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+        }
+
+        #sidebar.collapsed .user-info { display: none; }
+
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.show { transform: translateX(0); }
+            #content { margin-left: 0; }
+            .sidebar-toggle { left: 15px; right: auto; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Top Bar -->
+    <nav class="top-bar d-flex align-items-center px-4">
+        <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('dashboard.index') }}">
+            {% if g.empresa_logo %}
+            <img src="{{ g.empresa_logo }}" alt="Logo" class="me-2" style="height: 40px; width: 40px; object-fit: contain; border-radius: 8px;">
+            {% else %}
+            <div class="me-2 d-flex align-items-center justify-content-center bg-primary text-white rounded" style="height: 40px; width: 40px; font-size: 1.2rem; font-weight: bold;">
+                {{ g.empresa_nombre[0] if g.empresa_nombre else 'E' }}
+            </div> 
+            {% endif %}
+            <div class="d-flex flex-column">
+                <strong class="text-dark" style="line-height: 1.2;">{{ g.empresa_nombre or 'Mi Empresa' }}</strong>
+                <small class="text-muted" style="font-size: 0.75rem;">{{ g.usuario_nombre or session.get('username', 'Usuario') }}</small>
+            </div>
+        </a>
+
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <div class="dropdown">
+                <button class="btn btn-link text-dark position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="notificationsDropdown">
+                    <li><h6 class="dropdown-header">Notificaciones</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-muted small">No hay notificaciones</a></li>
+                </ul>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-link text-dark" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle fa-lg"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                    <li><h6 class="dropdown-header">{{ g.usuario_nombre }}</h6></li>
+                    <li><span class="dropdown-item-text small text-muted">{{ g.user_email }}</span></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-header">
+            <h4><i class="fas fa-chart-line me-2"></i>ERP Multi-Tenant</h4>
+        </div>
+
+        <nav class="nav flex-column py-2">
+            <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+
+            {% if g.rango <= 2 %}
+            <div class="mt-3 px-3 text-white-50 small text-uppercase">Administración</div>
+            
+            <a href="{{ url_for('admin.config_contratante') }}" class="nav-link {% if request.endpoint == 'admin.config_contratante' %}active{% endif %}">
+                <i class="fas fa-building"></i>
+                <span>Contratante</span>
+            </a>
+
+            <a href="{{ url_for('admin.config_empresas') }}" class="nav-link {% if request.endpoint == 'admin.config_empresas' %}active{% endif %}">
+                <i class="fas fa-sitemap"></i>
+                <span>Empresas</span>
+            </a>
+
+            <a href="{{ url_for('admin.config_modulos') }}" class="nav-link {% if request.endpoint == 'admin.config_modulos' %}active{% endif %}">
+                <i class="fas fa-th-large"></i>
+                <span>Módulos</span>
+            </a>
+
+            <a href="{{ url_for('admin.config_usuarios') }}" class="nav-link {% if request.endpoint == 'admin.config_usuarios' %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Usuarios</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="user-info">
+            <div class="small text-white-50">Sesión activa</div>
+            <div class="fw-bold">{{ g.usuario_nombre }}</div>
+            <div class="small">Rango: {{ g.rango }}</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="content">
+        <div class="container-fluid">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            const icon = document.querySelector('.sidebar-toggle i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

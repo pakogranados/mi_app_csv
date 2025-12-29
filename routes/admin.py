@@ -3,6 +3,11 @@ from utils.decorators import require_login, require_rango, require_puede_crear_u
 from werkzeug.security import generate_password_hash
 import json
 
+def get_mysql():
+    """Importación lazy para evitar circular imports"""
+    from app_multitenant import mysql
+    return mysql
+
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @bp.route('/configuracion/contratante', methods=['GET', 'POST'])
@@ -40,7 +45,7 @@ def config_contratante():
 @require_login
 @require_rango(1)
 def config_empresas():
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("SELECT * FROM empresas WHERE contratante_id = %s ORDER BY nombre", (g.contratante_id,))
     empresas = cur.fetchall()
     cur.close()
@@ -53,7 +58,7 @@ def nueva_empresa():
     nombre = request.form['nombre']
     rfc = request.form['rfc']
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("""
         INSERT INTO empresas (contratante_id, nombre, rfc, puede_compartir_rfc, activo)
         VALUES (%s, %s, %s, TRUE, TRUE)
@@ -68,7 +73,7 @@ def nueva_empresa():
 @require_login
 @require_rango(1)
 def config_modulos():
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     
     cur.execute("SELECT * FROM empresas WHERE contratante_id = %s ORDER BY nombre", (g.contratante_id,))
     empresas = cur.fetchall()
@@ -97,7 +102,7 @@ def toggle_modulo():
     modulo_id = data['modulo_id']
     activo = data['activo']
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("""
         SELECT id FROM empresa_modulos WHERE empresa_id = %s AND modulo_id = %s
     """, (empresa_id, modulo_id))
@@ -121,7 +126,7 @@ def toggle_modulo():
 @require_login
 @require_rango(2)
 def config_usuarios():
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("""
         SELECT u.*, r.nombre as rango_nombre, e.nombre as empresa_nombre
         FROM usuarios u
@@ -155,7 +160,7 @@ def nuevo_usuario():
     puede_agregar = 'puede_agregar_usuarios' in request.form
     rol = request.form.get('rol', 'editor')
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("SELECT id FROM usuarios WHERE correo = %s", (email,))
     if cur.fetchone():
         flash('El email ya está registrado', 'danger')
@@ -183,7 +188,7 @@ def editar_usuario(usuario_id):
     puede_agregar = 'puede_agregar_usuarios' in request.form
     activo = 'activo' in request.form
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("""
         UPDATE usuarios 
         SET nombre = %s, empresa_id = %s, rango = %s, empresas_acceso = %s, 
@@ -204,7 +209,7 @@ def eliminar_usuario(usuario_id):
         flash('No puedes eliminar tu propio usuario', 'danger')
         return redirect(url_for('admin.config_usuarios'))
     
-    cur = mysql.connection.cursor()
+    cur = get_mysql().connection.cursor()
     cur.execute("""
         DELETE FROM usuarios 
         WHERE id = %s AND contratante_id = %s

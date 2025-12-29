@@ -18,21 +18,27 @@ def contratante():
         ciudad = request.form.get('ciudad', '')
         estado = request.form.get('estado', '')
         cp = request.form.get('cp', '')
+        tipo_organizacion = request.form['tipo_organizacion']
+        tipo_industria = request.form['tipo_industria']
         
         cur = get_mysql().connection.cursor()
         cur.execute("""
-            INSERT INTO contratantes (razon_social, rfc, email_contacto, telefono, direccion, ciudad, estado, cp, activo)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
-        """, (razon_social, rfc, email_contacto, telefono, direccion, ciudad, estado, cp))
+            INSERT INTO contratantes (razon_social, tipo_organizacion, tipo_industria, rfc, email_contacto, 
+                                     telefono, direccion, ciudad, estado, cp, activo)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+        """, (razon_social, tipo_organizacion, tipo_industria, rfc, email_contacto, telefono, direccion, ciudad, estado, cp))
         get_mysql().connection.commit()
         contratante_id = cur.lastrowid
         cur.close()
         
         session['temp_contratante_id'] = contratante_id
+        session['temp_tipo_organizacion'] = tipo_organizacion
+        session['temp_tipo_industria'] = tipo_industria
+        
         return redirect(url_for('onboarding.empresa'))
     
     return render_template('onboarding/contratante.html')
-
+    
 @bp.route('/empresa', methods=['GET', 'POST'])
 def empresa():
     if 'temp_contratante_id' not in session:

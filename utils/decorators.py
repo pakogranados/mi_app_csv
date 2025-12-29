@@ -4,7 +4,7 @@ from functools import wraps
 
 def get_db():
     """Importación lazy para evitar circular imports"""
-    from app import mysql
+    from app_multitenant import mysql
     return mysql
 
 def require_login(f):
